@@ -1,0 +1,9 @@
+
+# 线程池餐宿
+threadpool:
+  corePoolSize: 5
+  maxPoolSize: 10
+  queueCapacity: 50
+  threadNamePrefix: "autolearn-service-"
+server:
+  port: 8090
