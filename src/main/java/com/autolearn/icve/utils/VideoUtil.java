@@ -49,6 +49,7 @@ public class VideoUtil {
         } else {
             commands.add("ffmpeg");
         }
+
         commands.add("-i");
         commands.add(httpUrl);
 
