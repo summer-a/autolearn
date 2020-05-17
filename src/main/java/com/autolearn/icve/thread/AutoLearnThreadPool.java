@@ -190,6 +190,8 @@ public class AutoLearnThreadPool {
                                                     case "文档":
                                                     case "ppt":
                                                     case "swf":
+                                                    case "文本":
+                                                    case "简单文本":
                                                         icveCourseService.brushOffice(user, viewDirectory);
                                                         break;
                                                     case "图片":
