@@ -59,6 +59,7 @@ public class CourseApi {
             String username,
             String password,
             @RequestParam(defaultValue = "", required = false) String verifyCode) {
+        log.info("[ " + username + " ] 登录");
         IcveUser user = icveLoginService.login(username, password, verifyCode);
         if (user != null && user.getUser() != null) {
             if (Objects.equals(user.getUser().getCode(), 1)) {
@@ -77,6 +78,7 @@ public class CourseApi {
     @GetMapping("/course/list")
     public CourseListDTO getCourseList(IcveUser user) throws InterruptedException {
         // 获取当前用户，取消cookie，在拦截器判断，存入用户组
+        log.info("课程列表");
         return icveCourseService.listCourse(user.getCookie());
     }
 
@@ -88,13 +90,18 @@ public class CourseApi {
     @GetMapping("/start")
     public ResultVO<String> start(IcveUserAndId user) {
 
-        // 判断是否在队列中
         String userId = user.getUser().getUserId();
-        if (!StringUtils.isEmpty(userId)) {
-            if (userQueue.containsKey(userId)) {
-                return ResultVO.fail("任务已在队列中");
-            }
+
+        if (StringUtils.isEmpty(userId)) {
+            return ResultVO.fail("请求id为空");
         }
+
+        // 判断是否在队列中
+        if (userQueue.containsKey(userId)) {
+            return ResultVO.fail("任务已在队列中");
+        }
+
+        log.info(user.getUser().getDisplayName() + "开始任务:" + user.getCourseId());
 
         CourseTaskDTO<String> courseTask = new CourseTaskDTO<>();
         courseTask.setCourseId(user.getCourseId());
@@ -125,6 +132,7 @@ public class CourseApi {
     public ResultVO cancel(String userId) {
         CourseTaskDTO courseTask = userQueue.get(userId);
         if (!Objects.equals(courseTask, null)) {
+            log.info(userId + "取消课程:" + courseTask.getCourseId());
 
             userQueue.remove(userId);
 
@@ -149,6 +157,7 @@ public class CourseApi {
      */
     @GetMapping("/course")
     public CourseListDTO.CourseList nowProgress(String cookie, String id) throws InterruptedException {
+        log.info("获取课程信息");
         return icveCourseService.getCourse(cookie, id);
     }
 
@@ -159,7 +168,10 @@ public class CourseApi {
      */
     @GetMapping("/state/task")
     public CourseTaskDTO taskState(String id) {
-        return userQueue.get(id);
+        log.info("从队列获取状态");
+        CourseTaskDTO courseTask = userQueue.get(id);
+        log.info(courseTask.toString());
+        return courseTask;
     }
 
     /**
@@ -167,7 +179,7 @@ public class CourseApi {
      * @return
      */
     @GetMapping("/threadpool/info")
-    public ThreadPoolInfo info() {
+    public ThreadPoolInfo threadInfo() {
         log.info("查看线程池信息");
         ThreadPoolExecutor threadPoolExecutor = threadPoolTaskExecutor.getThreadPoolExecutor();
         //返回计划执行的任务总数。
@@ -194,8 +206,19 @@ public class CourseApi {
         return threadPoolInfo;
     }
 
+    /**
+     * 用户队列信息
+     * @return
+     */
+    @GetMapping("/queue/info")
+    public ConcurrentHashMap<String, CourseTaskDTO> queueInfo() {
+        log.info("获取用户队列" + userQueue.toString());
+        return userQueue;
+    }
+
     @GetMapping("/show")
     public String show() {
+        log.info("测试");
         Future result = autoLearnThreadPool.show();
         return "ok";
     }
