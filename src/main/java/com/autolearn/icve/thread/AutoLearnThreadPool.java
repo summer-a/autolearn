@@ -1,6 +1,5 @@
 package com.autolearn.icve.thread;
 
-import com.autolearn.icve.controller.CourseApi;
 import com.autolearn.icve.entity.icve.*;
 import com.autolearn.icve.service.IcveCourseService;
 import com.xiaoleilu.hutool.util.CollectionUtil;
@@ -50,6 +49,11 @@ public class AutoLearnThreadPool {
         return new AsyncResult("ok");
     }
 
+    /**
+     * 刷课主方法
+     * @param user
+     * @return
+     */
     @Async
     public Future<String> brush(IcveUserAndId user) {
 
@@ -150,7 +154,6 @@ public class AutoLearnThreadPool {
                                         } else {
                                             cellDataList.add(cell);
                                         }
-
                                         // 遍历子列表
                                         for (CellListDTO.CellList cellData : cellDataList) {
                                             formCellMap.put("moduleId", module.getId());
@@ -177,7 +180,6 @@ public class AutoLearnThreadPool {
                                                     Thread.sleep(5 * 1000);
                                                     continue;
                                                 }
-
                                                 // 根据分类制定不同刷课方案
                                                 switch (categoryName) {
                                                     case "视频":
@@ -197,6 +199,8 @@ public class AutoLearnThreadPool {
                                                     case "图片":
                                                         icveCourseService.brushImage(user, viewDirectory);
                                                         break;
+                                                    default:
+                                                        break;
                                                 }
                                             }
                                         }
@@ -207,14 +211,18 @@ public class AutoLearnThreadPool {
                     }
                 }
             }
-            userQueue.remove(userInfo.getUserId());
             return new AsyncResult("success");
         } catch (InterruptedException e) {
             printErrorLog("线程中断/取消", e);
             return new AsyncResult<>("cancel");
         } catch (Exception e) {
             printErrorLog("刷课异常", e);
+            Thread.currentThread().interrupt();
             return new AsyncResult<>("fail");
+        } finally {
+            if (userQueue.get(userInfo.getUserId()) != null) {
+                userQueue.remove(userInfo.getUserId());
+            }
         }
     }
     
