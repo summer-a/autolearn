@@ -13,6 +13,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -158,7 +159,8 @@ public class CourseApi {
     @GetMapping("/course")
     public CourseListDTO.CourseList nowProgress(String cookie, String id) throws InterruptedException {
         log.info("获取课程信息");
-        return icveCourseService.getCourse(cookie, id);
+
+        return icveCourseService.getCurrentCourse(cookie, id);
     }
 
     /**
@@ -170,7 +172,6 @@ public class CourseApi {
     public CourseTaskDTO taskState(String id) {
         log.info("从队列获取状态");
         CourseTaskDTO courseTask = userQueue.get(id);
-        log.info(courseTask.toString());
         return courseTask;
     }
 
@@ -183,17 +184,17 @@ public class CourseApi {
         log.info("查看线程池信息");
         ThreadPoolExecutor threadPoolExecutor = threadPoolTaskExecutor.getThreadPoolExecutor();
         //返回计划执行的任务总数。
-        log.info("getTaskCount：" + threadPoolExecutor.getTaskCount());
+        log.info("taskCount：" + threadPoolExecutor.getTaskCount());
         //返回正在主动执行任务的线程的大概数量。
-        log.info("getActiveCount：" + threadPoolExecutor.getActiveCount());
+        log.info("activeCount：" + threadPoolExecutor.getActiveCount());
         //返回池中的当前线程数。
-        log.info("getPoolSize：" + threadPoolExecutor.getPoolSize());
+        log.info("poolSize：" + threadPoolExecutor.getPoolSize());
         //返回线程的核心数量。
-        log.info("getCorePoolSize：" + threadPoolExecutor.getCorePoolSize());
+        log.info("corePoolSize：" + threadPoolExecutor.getCorePoolSize());
         //返回池中曾经同时存在的最大线程数。
-        log.info("getLargestPoolSize：" + threadPoolExecutor.getLargestPoolSize());
+        log.info("largestPoolSize：" + threadPoolExecutor.getLargestPoolSize());
         //返回允许的最大线程数。
-        log.info("getMaximumPoolSize：" + threadPoolExecutor.getMaximumPoolSize());
+        log.info("maximumPoolSize：" + threadPoolExecutor.getMaximumPoolSize());
         
         ThreadPoolInfo threadPoolInfo = new ThreadPoolInfo();
         threadPoolInfo.setCorePoolSize(threadPoolExecutor.getCorePoolSize());
@@ -212,14 +213,14 @@ public class CourseApi {
      */
     @GetMapping("/queue/info")
     public ConcurrentHashMap<String, CourseTaskDTO> queueInfo() {
-        log.info("获取用户队列" + userQueue.toString());
+        log.info("获取用户队列" + userQueue);
         return userQueue;
     }
 
     @GetMapping("/show")
     public String show() {
         log.info("测试");
-        Future result = autoLearnThreadPool.show();
+        autoLearnThreadPool.show();
         return "ok";
     }
 

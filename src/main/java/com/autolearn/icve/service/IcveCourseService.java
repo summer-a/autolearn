@@ -101,5 +101,5 @@ public interface IcveCourseService {
      * @param id     课程id
      * @return
      */
-    CourseListDTO.CourseList getCourse(String cookie, String id) throws InterruptedException;
+    CourseListDTO.CourseList getCurrentCourse(String cookie, String id) throws InterruptedException;
 }

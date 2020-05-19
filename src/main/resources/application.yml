@@ -1,8 +1,8 @@
 
-# 线程池餐宿
+# 线程池参数
 threadpool:
-  corePoolSize: 5
-  maxPoolSize: 10
+  corePoolSize: 10
+  maxPoolSize: 20
   queueCapacity: 50
   threadNamePrefix: "autolearn-service-"
 server:

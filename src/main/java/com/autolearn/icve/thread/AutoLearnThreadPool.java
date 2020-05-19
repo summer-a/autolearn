@@ -176,8 +176,8 @@ public class AutoLearnThreadPool {
 
                                                 // 已完成的不用继续
                                                 if (Objects.equals(cellPercent, 100)) {
-                                                    // 即使完成也要等5秒
-                                                    Thread.sleep(5 * 1000);
+                                                    // 即使完成也要等3秒
+                                                    Thread.sleep(3 * 1000);
                                                     continue;
                                                 }
                                                 // 根据分类制定不同刷课方案

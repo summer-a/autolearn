@@ -277,7 +277,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
      * @return
      */
     @Override
-    public CourseListDTO.CourseList getCourse(String cookie, String id) throws InterruptedException {
+    public CourseListDTO.CourseList getCurrentCourse(String cookie, String id) throws InterruptedException {
         // 睡眠1秒
         sleep(1 * 1000);
 
