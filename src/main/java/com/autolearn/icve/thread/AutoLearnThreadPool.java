@@ -28,7 +28,7 @@ public class AutoLearnThreadPool {
 
     @Autowired
     private IcveCourseService icveCourseService;
-    
+
     private String displayName;
 
     @Async
@@ -51,6 +51,7 @@ public class AutoLearnThreadPool {
 
     /**
      * 刷课主方法
+     *
      * @param user
      * @return
      */
@@ -93,7 +94,14 @@ public class AutoLearnThreadPool {
 
             if (processList != null && Objects.equals(processList.getCode(), 1)) {
 
-                printLog("课件数:" + processList.getOpenCourseCellCount());
+                Integer courseCellCount = processList.getOpenCourseCellCount();
+
+                // 更新课件数
+                CourseTaskDTO courseTaskDTO2 = userQueue.get(userInfo.getUserId());
+                courseTaskDTO2.setCourseCount(courseCellCount);
+                userQueue.put(userInfo.getUserId(), courseTaskDTO2);
+
+                printLog("课件数:" + courseCellCount);
 
                 List<ProcessListDTO.ModuleList> moduleList = processList.getProgress().getModuleList();
                 for (ProcessListDTO.ModuleList module : moduleList) {
@@ -159,49 +167,43 @@ public class AutoLearnThreadPool {
                                             formCellMap.put("moduleId", module.getId());
                                             formCellMap.put("cellId", cellData.getId());
 
-                                            // 重试次数
-                                            int count = 3;
-                                            viewDirectory:{
-                                                // 获取课件信息
-                                                ViewDirectoryDTO viewDirectory = icveCourseService.listViewDirectory(user.getCookie(), formCellMap);
+                                            // 获取课件信息
+                                            ViewDirectoryDTO viewDirectory = icveCourseService.listViewDirectory(user.getCookie(), formCellMap);
 
-                                                String categoryName = cellData.getCategoryName();
+                                            String categoryName = cellData.getCategoryName();
 
-                                                Integer cellPercent = viewDirectory.getCellPercent();
+                                            Integer cellPercent = viewDirectory.getCellPercent();
 
-                                                // 更新课程信息到队列
-                                                CourseTaskDTO courseTask = userQueue.get(userInfo.getUserId());
-                                                courseTask.setCourse(cellData);
-                                                userQueue.put(userInfo.getUserId(), courseTask);
+                                            // 更新课程信息到队列
+                                            CourseTaskDTO courseTask = userQueue.get(userInfo.getUserId());
+                                            courseTask.setCourse(cellData);
+                                            userQueue.put(userInfo.getUserId(), courseTask);
 
-                                                // 已完成的不用继续
-                                                if (Objects.equals(cellPercent, 100)) {
-                                                    // 即使完成也要等3秒
-                                                    Thread.sleep(3 * 1000);
-                                                    continue;
-                                                }
-                                                // 根据分类制定不同刷课方案
-                                                switch (categoryName) {
-                                                    case "视频":
-                                                    case "音频":
-                                                        int result = icveCourseService.brushVideo(user, viewDirectory);
-                                                        if (result == 2 && --count <= 1) {
-                                                            break viewDirectory;
-                                                        }
-                                                        break;
-                                                    case "文档":
-                                                    case "ppt":
-                                                    case "swf":
-                                                    case "文本":
-                                                    case "简单文本":
-                                                        icveCourseService.brushOffice(user, viewDirectory);
-                                                        break;
-                                                    case "图片":
-                                                        icveCourseService.brushImage(user, viewDirectory);
-                                                        break;
-                                                    default:
-                                                        break;
-                                                }
+                                            // 已完成的不用继续
+                                            if (Objects.equals(cellPercent, 100)) {
+                                                // 即使完成也要等1秒
+                                                Thread.sleep(1 * 1000);
+                                                continue;
+                                            }
+                                            // 根据分类制定不同刷课方案
+                                            switch (categoryName) {
+                                                case "视频":
+                                                case "音频":
+                                                    icveCourseService.brushVideo(user, viewDirectory);
+                                                    break;
+                                                case "文档":
+                                                case "ppt":
+                                                case "swf":
+                                                case "文本":
+                                                case "简单文本":
+                                                    icveCourseService.brushOffice(user, viewDirectory);
+                                                    break;
+                                                case "图片":
+                                                    icveCourseService.brushImage(user, viewDirectory);
+                                                    break;
+                                                default:
+                                                    icveCourseService.brushOther(user, viewDirectory);
+                                                    break;
                                             }
                                         }
                                     }
@@ -217,7 +219,8 @@ public class AutoLearnThreadPool {
             return new AsyncResult<>("cancel");
         } catch (Exception e) {
             printErrorLog("刷课异常", e);
-            Thread.currentThread().interrupt();
+            e.printStackTrace();
+//            Thread.currentThread().interrupt();
             return new AsyncResult<>("fail");
         } finally {
             if (userQueue.get(userInfo.getUserId()) != null) {
@@ -225,7 +228,7 @@ public class AutoLearnThreadPool {
             }
         }
     }
-    
+
     private void printLog(String logger) {
         log.info(String.format("[ %s ] %s", this.displayName, logger));
     }

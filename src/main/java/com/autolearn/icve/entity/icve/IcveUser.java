@@ -40,9 +40,9 @@ public class IcveUser implements Serializable {
     public static class User implements Serializable {
         private String avator;
         private Integer code;
+        private Integer lateCode;
         private String displayName;
         private Integer isEmail;
-        private Integer isExpertTea;
         private Integer isForceUpdatePwdToSecurity;
         private Integer isGameTea;
         private Integer isInitialPwd;
@@ -52,13 +52,17 @@ public class IcveUser implements Serializable {
         private String schoolId;
         private String schoolLogo;
         private String schoolName;
+        private String schoolCode;
         private String schoolUrl;
         private String token;
         private String userId;
         private String userName;
+        private String firstUserName;
+        private String secondUserName;
         private Integer userType;
         private Integer versionMode;
         private String versionType;
-        private String webUrl;
+        private Integer mgdCount;
+        private Integer isNeedConfirmUserName;
     }
 }

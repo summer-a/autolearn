@@ -151,22 +151,26 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     public int brushVideo(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
         Map<String, Object> form = new HashMap<>(8);
 
-        String newCookie = brushParam(form, user, viewDirectory);
-
         form.put("picNum", 0);
         form.put("studyNewlyPicNum", 0);
+
         Double audioVideoLong = viewDirectory.getAudioVideoLong();
         // 获取视频长度失败
         if (audioVideoLong == 0) {
             // 从流获取
-            double videoLong = VideoUtil.getHttpsVideoLong(viewDirectory.getDownLoadUrl());
-            if (videoLong == 0) {
-                sleep((5 * 1000));
+            int retryCount = 2;
+            for (int i = 0; i < retryCount; i++) {
+                double videoLong = VideoUtil.getHttpsVideoLong(viewDirectory.getDownLoadUrl());
+                if (videoLong > 0) {
+                    audioVideoLong = videoLong / 1000.0;
+                    break;
+                }
+            }
+            if (audioVideoLong == 0) {
                 return 2;
             }
-            audioVideoLong = videoLong / 1000.0;
         }
-
+        // 当前进度
         Double studyNewlyTime = viewDirectory.getStuStudyNewlyTime();
 
         while (studyNewlyTime < audioVideoLong) {
@@ -177,7 +181,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             double randomDouble = new Random().nextDouble() / 1000.0 + 10.0;
             BigDecimal bigDecimal = new BigDecimal(randomDouble);
             // 每次请求时间需要隔10秒,取后6位
-            studyNewlyTime += bigDecimal.setScale(6, RoundingMode.DOWN).doubleValue();
+            studyNewlyTime += bigDecimal.setScale(6, RoundingMode.DOWN).stripTrailingZeros().doubleValue();
             // 超过视频时长则设置为视频时长
             studyNewlyTime = studyNewlyTime > audioVideoLong ? audioVideoLong + 1 : studyNewlyTime;
 
@@ -187,14 +191,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             double sleepTime = (audioVideoLong - studyNewlyTime) < 10 ? ((audioVideoLong - studyNewlyTime) * 1000) : (10 * 1000);
             sleep((long) (sleepTime < 1 ? 1 : sleepTime));
 
-            // 开始访问刷课
-            JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, form);
-            // 判断进度，根据进度停止运行
-            if (resp != null) {
-                if (Objects.equals(resp.getInt("code"), 1)) {
-                    log.info("视频:" + resp.getStr("msg"));
-                }
-            }
+            brush(user, viewDirectory, form);
         }
         return 1;
     }
@@ -210,31 +207,32 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     public void brushOffice(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
         Map<String, Object> form = new HashMap<>(8);
 
-        String newCookie = brushParam(form, user, viewDirectory);
-
         form.put("studyNewlyTime", 0);
 
         // 页数获取
         Integer pageCount = viewDirectory.getPageCount();
 
+        long begin = System.currentTimeMillis();
+
         // 开始访问刷课
-        // 判断页数
-        for (int i = 1; i <= pageCount; i++) {
+        // 判断页数，每页访问两秒，文档至少访问12秒
+        for (int i = 1; i <= pageCount; ) {
 
             // 更新进度
             updatePercent(user.getUser().getUserId(), (int) ((double) i / pageCount * 100.0));
 
             form.put("picNum", i);
             form.put("studyNewlyPicNum", i);
-            // 休眠10秒
-            sleep(10 * 1000);
+            // 休眠2秒
+            sleep(2 * 1000);
 
-            JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, form);
-            // 判断进度，根据进度停止运行
-            if (resp != null) {
-                if (Objects.equals(resp.getInt("code"), 1)) {
-                    log.info("文档:" + resp.getStr("msg"));
-                }
+            brush(user, viewDirectory, form);
+
+            // 如果时间小于10秒并且翻页翻完了就等待
+            if ((System.currentTimeMillis() - begin) < (10 * 1000) && (i == pageCount)) {
+                continue;
+            } else {
+                i++;
             }
         }
     }
@@ -249,22 +247,51 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     public void brushImage(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
         Map<String, Object> form = new HashMap<>(8);
 
-        String newCookie = brushParam(form, user, viewDirectory);
-
         form.put("studyNewlyTime", 0);
         form.put("picNum", 1);
         form.put("studyNewlyPicNum", 1);
 
-        sleep(10 * 1000);
+        sleep(5 * 1000);
+
+        brush(user, viewDirectory, form);
+
+    }
+
+    @Override
+    public void brushOther(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
+        Map<String, Object> form = new HashMap<>(8);
+
+        form.put("studyNewlyTime", 0);
+        form.put("picNum", 0);
+        form.put("studyNewlyPicNum", 0);
+
+        sleep(5 * 1000);
+
+        brush(user, viewDirectory, form);
+    }
+
+    /**
+     * 刷课通用部分
+     *
+     * @param user
+     * @param viewDirectory
+     * @param formParam
+     * @throws InterruptedException
+     */
+    private void brush(IcveUserAndId user, ViewDirectoryDTO viewDirectory, Map<String, Object> formParam) throws InterruptedException {
+
+        String newCookie = brushParam(formParam, user, viewDirectory);
 
         // 开始访问刷课
-        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, form);
+        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, formParam);
         // 判断进度，根据进度停止运行
         if (resp != null) {
             if (Objects.equals(resp.getInt("code"), 1)) {
                 // 更新进度
                 updatePercent(user.getUser().getUserId(), 100);
-                log.info("图片:" + resp.getStr("msg"));
+                log.debug(viewDirectory.getCategoryName() + ": " + resp.getStr("msg"));
+            } else {
+                log.error(viewDirectory.getCategoryName() + "进度请求失败,code:" + resp.getStr("code"));
             }
         }
     }
@@ -318,7 +345,8 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
     /**
      * 更新进度
-     * @param userId 用户id
+     *
+     * @param userId     用户id
      * @param newPercent 新进度
      */
     private void updatePercent(String userId, Integer newPercent) {

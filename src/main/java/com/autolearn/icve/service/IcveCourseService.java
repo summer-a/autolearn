@@ -95,6 +95,14 @@ public interface IcveCourseService {
     void brushImage(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException;
 
     /**
+     * 刷课-其他
+     *
+     * @param user
+     * @param viewDirectory
+     */
+    void brushOther(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException;
+
+    /**
      * 获取当前课程信息
      *
      * @param cookie cookie

@@ -5,20 +5,27 @@ import com.autolearn.icve.entity.thread.ThreadPoolInfo;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.service.IcveLoginService;
 import com.autolearn.icve.thread.AutoLearnThreadPool;
+import com.autolearn.icve.utils.SystemInfoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 刷课api
@@ -50,25 +57,52 @@ public class CourseApi {
     @Value("${threadpool.queueCapacity}")
     private Integer queueCapacity;
 
+    @Value("${stackinfo.pwd}")
+    private String STACK_INFO_PWD;
+
+    /** 当前通知内容 */
+    private static String msg = "";
+
+    /** 设置是否可以登录 */
+    private static AtomicBoolean canLogin = new AtomicBoolean(true);
+
     /**
      * 用户任务队列，单个用户不可重复创建,value=课程id
      */
     public static ConcurrentHashMap<String, CourseTaskDTO> userQueue = new ConcurrentHashMap();
 
+    /**
+     * 登录请求
+     * @param username
+     * @param password
+     * @param verifyCode
+     * @param verifyCodeCookie
+     * @return
+     */
     @PostMapping("/login")
     public ResultVO<IcveUser> login(
             String username,
             String password,
-            @RequestParam(defaultValue = "", required = false) String verifyCode) {
+            String verifyCode,
+            String verifyCodeCookie) {
+        // 如果登录被禁用
+        if (!canLogin.get()) {
+            return ResultVO.fail("当前登录功能暂时被禁用");
+        }
         log.info("[ " + username + " ] 登录");
-        IcveUser user = icveLoginService.login(username, password, verifyCode);
+        IcveUser user = icveLoginService.login(username, password, verifyCode, verifyCodeCookie);
         if (user != null && user.getUser() != null) {
             if (Objects.equals(user.getUser().getCode(), 1)) {
                 // 登录成功
                 return ResultVO.ok("success", user);
             }
         }
-        return ResultVO.fail();
+        return ResultVO.fail("登录失败,请检查账号密码");
+    }
+
+    @GetMapping("/verifyCode")
+    public Map<String, String> verifyCode() {
+        return icveLoginService.verifyCode();
     }
 
     /**
@@ -107,6 +141,8 @@ public class CourseApi {
         CourseTaskDTO<String> courseTask = new CourseTaskDTO<>();
         courseTask.setCourseId(user.getCourseId());
         courseTask.setState(CourseTaskDTO.StateEnum.QUEUE);
+        courseTask.setUserAccount(user.getUser().getUserName());
+        courseTask.setUserName(user.getUser().getDisplayName());
 
         userQueue.put(userId, courseTask);
 
@@ -184,18 +220,18 @@ public class CourseApi {
         log.info("查看线程池信息");
         ThreadPoolExecutor threadPoolExecutor = threadPoolTaskExecutor.getThreadPoolExecutor();
         //返回计划执行的任务总数。
-        log.info("taskCount：" + threadPoolExecutor.getTaskCount());
+//        log.info("taskCount：" + threadPoolExecutor.getTaskCount());
         //返回正在主动执行任务的线程的大概数量。
-        log.info("activeCount：" + threadPoolExecutor.getActiveCount());
+//        log.info("activeCount：" + threadPoolExecutor.getActiveCount());
         //返回池中的当前线程数。
-        log.info("poolSize：" + threadPoolExecutor.getPoolSize());
+//        log.info("poolSize：" + threadPoolExecutor.getPoolSize());
         //返回线程的核心数量。
-        log.info("corePoolSize：" + threadPoolExecutor.getCorePoolSize());
+//        log.info("corePoolSize：" + threadPoolExecutor.getCorePoolSize());
         //返回池中曾经同时存在的最大线程数。
-        log.info("largestPoolSize：" + threadPoolExecutor.getLargestPoolSize());
+//        log.info("largestPoolSize：" + threadPoolExecutor.getLargestPoolSize());
         //返回允许的最大线程数。
-        log.info("maximumPoolSize：" + threadPoolExecutor.getMaximumPoolSize());
-        
+//        log.info("maximumPoolSize：" + threadPoolExecutor.getMaximumPoolSize());
+
         ThreadPoolInfo threadPoolInfo = new ThreadPoolInfo();
         threadPoolInfo.setCorePoolSize(threadPoolExecutor.getCorePoolSize());
         threadPoolInfo.setMaximumPoolSize(threadPoolExecutor.getMaximumPoolSize());
@@ -216,6 +252,42 @@ public class CourseApi {
         log.info("获取用户队列" + userQueue);
         return userQueue;
     }
+
+    @GetMapping(value = "/msg", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE})
+    public String msg() {
+        log.info("获取公告");
+        return msg;
+    }
+
+    @GetMapping(value = "/set/msg", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE})
+    public ResultVO setMsg(String m) {
+        log.info("设置公告");
+        return ResultVO.ok(msg = m);
+    }
+
+    @GetMapping(value = "/login/open")
+    public ResultVO openLogin() {
+        log.info("允许登录");
+        canLogin.set(true);
+        return ResultVO.ok();
+    }
+
+    @GetMapping(value = "/login/close")
+    public ResultVO closeLogin() {
+        log.info("禁止登陆");
+        canLogin.set(false);
+        return ResultVO.ok();
+    }
+
+    @GetMapping(value = "/stack/info")
+    public SystemInfoUtil getStackInfo(HttpServletRequest request, String pwd) {
+        log.info("获取堆栈信息");
+        if (Objects.equals(pwd, STACK_INFO_PWD)) {
+            return SystemInfoUtil.getInstance(request);
+        }
+        return null;
+    }
+
 
     @GetMapping("/show")
     public String show() {

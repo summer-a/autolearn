@@ -15,13 +15,10 @@ public final class UrlFields {
     /**
      * 职教云(ICVE)链接
      */
-//    public static final String ICVE_LOGIN_REQUEST = "https://zjy2.icve.com.cn/dzx/portalApi/portallogin/login";
     /** 登录url */
-    public static final String ICVE_LOGIN_REQUEST = "https://zjy2.icve.com.cn/dzx/portalApi/portallogin/login";
-    /** 新版本登录url,也用于获取用户信息 */
-    public static final String ICVE_GET_USER_INFO = "https://zjy2.icve.com.cn/student/Studio/index";
+    public static final String ICVE_LOGIN_REQUEST = "https://zjy2.icve.com.cn/api/common/login/login";
     /** 验证码url */
-    public static final String ICVE_VERIFY_CODE = "https://www.icve.com.cn/portal/VerifyCode/index";
+    public static final String ICVE_VERIFY_CODE = "https://zjy2.icve.com.cn/api/common/VerifyCode/index";
     /** 获取课程列表 */
     public static final String ICVE_GET_LEARNNING_COURSE_LIST = "https://zjy2.icve.com.cn/student/learning/getLearnningCourseList";
     /** 获取处理列表 */

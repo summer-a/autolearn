@@ -7,11 +7,10 @@ import com.autolearn.icve.utils.HttpUtil;
 import com.xiaoleilu.hutool.http.HttpResponse;
 import com.xiaoleilu.hutool.util.CollectionUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Base64Utils;
+import sun.misc.BASE64Encoder;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author 胡江斌
@@ -30,18 +29,20 @@ public class IcveLoginServiceImpl implements IcveLoginService {
      * @param username   用户名
      * @param password   用户密码
      * @param verifyCode 图形验证码
+     * @param verifyCodeCookie 验证码cookie
      * @return
      */
     @Override
-    public IcveUser login(String username, String password, String verifyCode) {
+    public IcveUser login(String username, String password, String verifyCode, String verifyCodeCookie) {
+
+        Optional<String> verifyCodeCookieStr = Arrays.stream(verifyCodeCookie.split(",")).map(cookie -> cookie.split(";")[0]).reduce((before, after) -> before + ";" + after);
 
         Map<String, Object> formMap = new HashMap<>(3);
-        formMap.put("schoolId", "bxknaesnyyrkzqljk-xhla");
         formMap.put("userName", username);
         formMap.put("userPwd", password);
         formMap.put("verifyCode", verifyCode);
 
-        HttpResponse response = HttpUtil.post(UrlFields.ICVE_LOGIN_REQUEST, formMap);
+        HttpResponse response = HttpUtil.post(UrlFields.ICVE_LOGIN_REQUEST, verifyCodeCookieStr.get(), formMap);
 
         IcveUser user = new IcveUser();
         user.setUser(response.body());
@@ -54,6 +55,29 @@ public class IcveLoginServiceImpl implements IcveLoginService {
         }
 
         return user;
+    }
+
+    /**
+     * 获取验证码
+     * @return
+     */
+    @Override
+    public Map<String, String> verifyCode() {
+
+        Map<String, String> map = new HashMap<>(2);
+
+        HttpResponse response = HttpUtil.get(UrlFields.ICVE_VERIFY_CODE + "?t=" + Math.random());
+
+        String result = Base64Utils.encodeToString(response.bodyBytes());
+
+        map.put("base64", "data:image/gif;base64," + result);
+
+        List<String> cookies = response.headerList("Set-Cookie");
+        Optional<String> verifyCodeCookieStr = cookies.stream().map(cookie -> cookie.split(";")[0]).reduce((before, after) -> before + ";" + after);
+
+        map.put("cookie", verifyCodeCookieStr.get());
+
+        return map;
     }
 
 }

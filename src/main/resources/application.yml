@@ -1,9 +1,12 @@
 
 # 线程池参数
 threadpool:
-  corePoolSize: 10
-  maxPoolSize: 20
+  corePoolSize: 60
+  maxPoolSize: 100
   queueCapacity: 50
   threadNamePrefix: "autolearn-service-"
 server:
   port: 8090
+
+stackinfo:
+  pwd: 88619973

@@ -23,6 +23,10 @@ import java.util.concurrent.Future;
 public class  CourseTaskDTO<T> {
     /** 课程id */
     private String courseId;
+    /** 用户账户 */
+    private String userAccount;
+    /** 用户姓名 */
+    private String userName;
     /** 任务返回结果 */
     private Future<T> future;
     /** 当前运行状态 */
@@ -31,8 +35,13 @@ public class  CourseTaskDTO<T> {
     private CellListDTO.CellList course;
     /** 当前课件进度 */
     private Integer percent;
+    /** 当前任务hashCode */
+    private Integer hashCode;
 
-    public static enum StateEnum {
+    /** 课程课件数 */
+    private Integer courseCount;
+
+    public enum StateEnum {
         /** 已经开始运行 */
         START,
         /** 正在队列中 */

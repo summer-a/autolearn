@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -36,6 +35,8 @@ public class ExecutorConfig {
         threadPoolTaskExecutor.setAllowCoreThreadTimeOut(true);
         // 最大线程数
         threadPoolTaskExecutor.setMaxPoolSize(threadPoolProperties.getMaxPoolSize());
+        // 禁止超时
+        threadPoolTaskExecutor.setAllowCoreThreadTimeOut(false);
         // 队列大小
         threadPoolTaskExecutor.setQueueCapacity(threadPoolProperties.getQueueCapacity());
         // 线程池前缀
@@ -47,3 +48,4 @@ public class ExecutorConfig {
         return threadPoolTaskExecutor;
     }
 }
+
