@@ -23,8 +23,10 @@ public final class UrlFields {
     public static final String ICVE_GET_LEARNNING_COURSE_LIST = "https://zjy2.icve.com.cn/student/learning/getLearnningCourseList";
     /** 获取处理列表 */
     public static final String ICVE_GET_PROCESS_LIST = "https://zjy2.icve.com.cn/api/study/process/getProcessList";
-    /** 获取学生班级信息 */
-    public static final String ICVE_GET_STU_STUDY_CLASS_LIST = "https://zjy2.icve.com.cn/common/courseLoad/getStuStudyClassList";
+    /** 获取作业列表 */
+    public static final String ICVE_GET_HOMEWORK_LIST = "https://zjy2.icve.com.cn/api/student/myHomework/getMyHomeworkList";
+    /** 获取作业详情 */
+    public static final String ICVE_GET_HOMEWORK_PREVIEW = "https://security.zjy2.icve.com.cn/api/study/homework/preview";
     /** 获取主题 */
     public static final String ICVE_GET_TOPIC_BY_MODULE_ID = "https://zjy2.icve.com.cn/api/study/process/getTopicByModuleId";
     /** 根据主题id获取单元 */
@@ -35,6 +37,13 @@ public final class UrlFields {
     public static final String ICVE_STU_PROCESS_CELL_LOG = "https://zjy2.icve.com.cn/api/common/Directory/stuProcessCellLog";
     /** 更改不同进度课件 */
     public static final String ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA = "https://zjy2.icve.com.cn/api/common/Directory/changeStuStudyProcessCellData";
+
+    /** 添加redis 学生记录  */
+    public static final String ICVE_ADD_STU_REDIS_RECORD = "https://security.zjy2.icve.com.cn/api/study/homework/addStuRedisRecord";
+    /** 获取答案 */
+    public static final String ICVE_GET_ANSWER = "http://p.52dw.net:81/chati";
+    /** 提交作业 */
+    public static final String ICVE_SUBMIT_HOMEWORK = "https://security.zjy2.icve.com.cn/api/study/homework/newStuSubmitHomework";
 
     private UrlFields() {
 

@@ -1,4 +1,4 @@
-package com.autolearn.icve.entity.icve;
+package com.autolearn.icve.entity.icve.dto;
 
 import com.xiaoleilu.hutool.json.JSONArray;
 import com.xiaoleilu.hutool.util.CollectionUtil;

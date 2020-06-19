@@ -1,4 +1,4 @@
-package com.autolearn.icve.entity.icve;
+package com.autolearn.icve.entity.icve.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

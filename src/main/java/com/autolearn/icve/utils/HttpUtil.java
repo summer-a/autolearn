@@ -110,7 +110,7 @@ public class HttpUtil {
      * @return
      */
     public static JSONObject postJson(String url, String cookie, Map<String, Object> param) {
-        HttpResponse response = HttpUtil.post(url, cookie, param);
+        HttpResponse response = post(url, cookie, param);
         String body = response.body();
         if (response.getStatus() == HttpStatus.HTTP_OK  && !StringUtils.isEmpty(body)) {
             return new JSONObject(body);

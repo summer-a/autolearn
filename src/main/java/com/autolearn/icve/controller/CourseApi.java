@@ -1,21 +1,22 @@
 package com.autolearn.icve.controller;
 
 import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.entity.thread.ThreadPoolInfo;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.service.IcveLoginService;
 import com.autolearn.icve.thread.AutoLearnThreadPool;
 import com.autolearn.icve.utils.SystemInfoUtil;
+import com.xiaoleilu.hutool.cron.TaskExecutor;
+import com.xiaoleilu.hutool.json.JSONObject;
+import com.xiaoleilu.hutool.thread.GlobalThreadPool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -60,10 +61,14 @@ public class CourseApi {
     @Value("${stackinfo.pwd}")
     private String STACK_INFO_PWD;
 
-    /** 当前通知内容 */
+    /**
+     * 当前通知内容
+     */
     private static String msg = "";
 
-    /** 设置是否可以登录 */
+    /**
+     * 设置是否可以登录
+     */
     private static AtomicBoolean canLogin = new AtomicBoolean(true);
 
     /**
@@ -73,6 +78,7 @@ public class CourseApi {
 
     /**
      * 登录请求
+     *
      * @param username
      * @param password
      * @param verifyCode
@@ -107,6 +113,7 @@ public class CourseApi {
 
     /**
      * 课程列表
+     *
      * @param user
      * @return
      */
@@ -119,6 +126,7 @@ public class CourseApi {
 
     /**
      * 开始刷课
+     *
      * @param user
      * @return
      */
@@ -161,7 +169,61 @@ public class CourseApi {
     }
 
     /**
+     * 获取作业列表
+     *
+     * @param cookie
+     * @param unprocessed
+     * @return
+     */
+    @GetMapping("/listWork")
+    public HomeworkListDTO listWork(String cookie, Integer unprocessed) {
+        log.info("作业列表");
+        return icveCourseService.listHomework(cookie, unprocessed);
+    }
+
+    /**
+     * 获取作业
+     *
+     * @param cookie
+     * @param courseOpenId
+     * @param openClassId
+     * @param homeWorkId
+     * @param activityId
+     * @param hkTermTimeId
+     * @param faceType
+     * @return
+     */
+    @GetMapping("/getWork")
+    public HomeworkPreviewDTO getWork(String cookie,
+                                      String courseOpenId,
+                                      String openClassId,
+                                      String homeWorkId,
+                                      String activityId,
+                                      String hkTermTimeId,
+                                      String faceType) {
+        log.info("获取作业");
+        // 获取作业
+        return icveCourseService.getHomework(cookie, courseOpenId, openClassId, homeWorkId, activityId, hkTermTimeId, faceType);
+    }
+
+    /**
+     * 提交答案
+     * @param submitObj
+     * @return
+     */
+    @PostMapping("/submitWork")
+    public boolean submitWork(@RequestBody SubmitWorkPOJO submitObj) {
+        log.info("提交作业");
+        JSONObject jsonObject = icveCourseService.submitWork(submitObj);
+        if (jsonObject.getInt("code") == 1) {
+            return true;
+        }
+        return  false;
+    }
+
+    /**
      * 取消任务
+     *
      * @param userId 用户
      * @return
      */
@@ -199,8 +261,15 @@ public class CourseApi {
         return icveCourseService.getCurrentCourse(cookie, id);
     }
 
+    @GetMapping("/answer")
+    public String getAnswer(String q) {
+        log.info("获取答案");
+        return icveCourseService.getAnswer(q);
+    }
+
     /**
      * 根据id查询是否有任务在进行
+     *
      * @param id
      * @return 课程id
      */
@@ -213,24 +282,13 @@ public class CourseApi {
 
     /**
      * 线程池信息
+     *
      * @return
      */
     @GetMapping("/threadpool/info")
     public ThreadPoolInfo threadInfo() {
         log.info("查看线程池信息");
         ThreadPoolExecutor threadPoolExecutor = threadPoolTaskExecutor.getThreadPoolExecutor();
-        //返回计划执行的任务总数。
-//        log.info("taskCount：" + threadPoolExecutor.getTaskCount());
-        //返回正在主动执行任务的线程的大概数量。
-//        log.info("activeCount：" + threadPoolExecutor.getActiveCount());
-        //返回池中的当前线程数。
-//        log.info("poolSize：" + threadPoolExecutor.getPoolSize());
-        //返回线程的核心数量。
-//        log.info("corePoolSize：" + threadPoolExecutor.getCorePoolSize());
-        //返回池中曾经同时存在的最大线程数。
-//        log.info("largestPoolSize：" + threadPoolExecutor.getLargestPoolSize());
-        //返回允许的最大线程数。
-//        log.info("maximumPoolSize：" + threadPoolExecutor.getMaximumPoolSize());
 
         ThreadPoolInfo threadPoolInfo = new ThreadPoolInfo();
         threadPoolInfo.setCorePoolSize(threadPoolExecutor.getCorePoolSize());
@@ -245,6 +303,7 @@ public class CourseApi {
 
     /**
      * 用户队列信息
+     *
      * @return
      */
     @GetMapping("/queue/info")

@@ -3,18 +3,23 @@ package com.autolearn.icve.service.impl;
 
 import com.autolearn.icve.entity.field.UrlFields;
 import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.utils.HttpUtil;
 import com.autolearn.icve.utils.VideoUtil;
+import com.xiaoleilu.hutool.http.HttpResponse;
+import com.xiaoleilu.hutool.json.JSONArray;
 import com.xiaoleilu.hutool.json.JSONObject;
+import com.xiaoleilu.hutool.thread.GlobalThreadPool;
 import com.xiaoleilu.hutool.util.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static com.autolearn.icve.controller.CourseApi.userQueue;
 
@@ -42,7 +47,9 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     public CourseListDTO listCourse(String cookie) throws InterruptedException {
         // 睡眠一秒
         sleep(1 * 1000);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_LEARNNING_COURSE_LIST, cookie, new HashMap<>(0), CourseListDTO.class);
+        HashMap<String, Object> param = new HashMap<>(2);
+        param.put("type", 1);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_LEARNNING_COURSE_LIST, cookie, param, CourseListDTO.class);
     }
 
     /**
@@ -158,7 +165,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         // 获取视频长度失败
         if (audioVideoLong == 0) {
             // 从流获取
-            int retryCount = 2;
+            int retryCount = 1;
             for (int i = 0; i < retryCount; i++) {
                 double videoLong = VideoUtil.getHttpsVideoLong(viewDirectory.getDownLoadUrl());
                 if (videoLong > 0) {
@@ -191,7 +198,9 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             double sleepTime = (audioVideoLong - studyNewlyTime) < 10 ? ((audioVideoLong - studyNewlyTime) * 1000) : (10 * 1000);
             sleep((long) (sleepTime < 1 ? 1 : sleepTime));
 
-            brush(user, viewDirectory, form);
+            if (!brush(user, viewDirectory, form)) {
+                return 0;
+            }
         }
         return 1;
     }
@@ -226,7 +235,9 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             // 休眠2秒
             sleep(2 * 1000);
 
-            brush(user, viewDirectory, form);
+            if (!brush(user, viewDirectory, form)) {
+                return ;
+            }
 
             // 如果时间小于10秒并且翻页翻完了就等待
             if ((System.currentTimeMillis() - begin) < (10 * 1000) && (i == pageCount)) {
@@ -255,6 +266,8 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
         brush(user, viewDirectory, form);
 
+        // 更新进度
+        updatePercent(user.getUser().getUserId(), 100);
     }
 
     @Override
@@ -278,7 +291,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
      * @param formParam
      * @throws InterruptedException
      */
-    private void brush(IcveUserAndId user, ViewDirectoryDTO viewDirectory, Map<String, Object> formParam) throws InterruptedException {
+    private boolean brush(IcveUserAndId user, ViewDirectoryDTO viewDirectory, Map<String, Object> formParam) throws InterruptedException {
 
         String newCookie = brushParam(formParam, user, viewDirectory);
 
@@ -287,13 +300,13 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         // 判断进度，根据进度停止运行
         if (resp != null) {
             if (Objects.equals(resp.getInt("code"), 1)) {
-                // 更新进度
-                updatePercent(user.getUser().getUserId(), 100);
                 log.debug(viewDirectory.getCategoryName() + ": " + resp.getStr("msg"));
+                return true;
             } else {
-                log.error(viewDirectory.getCategoryName() + "进度请求失败,code:" + resp.getStr("code"));
+                log.error(viewDirectory.getCategoryName() + "进度请求失败:" + resp.toString());
             }
         }
+        return false;
     }
 
     /**
@@ -324,7 +337,116 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     }
 
     /**
-     * 通用刷课方法，添加通用的方法
+     * 获取作业列表
+     *
+     * @param cookie
+     * @param unprocessed
+     * @return
+     */
+    @Override
+    public HomeworkListDTO listHomework(String cookie, Integer unprocessed) {
+        Map<String, Object> param = new HashMap<>(2);
+        param.put("unprocessed", unprocessed);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_LIST, cookie, param, HomeworkListDTO.class);
+    }
+
+    /**
+     * 获取作业详情
+     *
+     * @param cookie
+     * @param courseOpenId
+     * @param openClassId
+     * @param homeWorkId
+     * @param activityId
+     * @param hkTermTimeId
+     * @param faceType
+     * @return
+     */
+    @Override
+    public HomeworkPreviewDTO getHomework(String cookie, String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType) {
+        Map<String, Object> param = new HashMap<>(16);
+        param.put("courseOpenId", courseOpenId);
+        param.put("openClassId", openClassId);
+        param.put("homeWorkId", homeWorkId);
+        param.put("activityId", activityId);
+        param.put("hkTermTimeId", hkTermTimeId);
+        param.put("faceType", faceType);
+
+        HomeworkPreviewDTO homeworkPreviewDTO = HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_PREVIEW, cookie, param, HomeworkPreviewDTO.class);
+
+        HomeworkPreviewDTO.Param hParam = homeworkPreviewDTO.getParam();
+        // 存入redis操作
+        GlobalThreadPool.execute(() -> {
+            JSONObject jsonObject = new JSONObject(homeworkPreviewDTO.getRedisData());
+            JSONArray questions = jsonObject.getJSONArray("questions");
+
+            Map<String, Object> param2 = new HashMap<>(16);
+            String[] ids = new String[questions.size()];
+            String[] questionIds = new String[questions.size()];
+
+            param2.put("uniqueId", hParam.getUniqueId());
+            param2.put("homeworkId", hParam.getHomeworkId());
+            param2.put("courseOpenId", hParam.getCourseOpenId());
+            param2.put("termId", hParam.getTermId());
+            param2.put("termCode", hParam.getTermCode());
+            param2.put("hkResId", hParam.getHkResId());
+
+            for (int i = 0; i < questions.size(); i++) {
+                JSONObject obj = questions.getJSONObject(i);
+                ids[i] = String.format("%s;%s_%s;%d", obj.getStr("questionId"), hParam.getUniqueId(), i, obj.getInt("totalScore"));
+                questionIds[i] = obj.getStr("questionId");
+            }
+            param2.put("ids", ids);
+            param2.put("questionIds", questionIds);
+
+            HttpUtil.postJson(UrlFields.ICVE_ADD_STU_REDIS_RECORD, cookie, param2);
+
+        });
+
+        return homeworkPreviewDTO;
+    }
+
+    /**
+     * 获取答案
+     * @param q
+     * @return
+     */
+    @Override
+    public String getAnswer(String q) {
+        try {
+            // 控制搜索频率
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+        }
+        Map<String, Object> param = new HashMap<>(2);
+        param.put("q", q);
+        HttpResponse response = HttpUtil.post(UrlFields.ICVE_GET_ANSWER, param);
+        return response.body();
+    }
+
+    /**
+     * 提交作业
+     * @param submitWorkPOJO
+     */
+    @Override
+    public JSONObject submitWork(SubmitWorkPOJO submitWorkPOJO) {
+        int randomTime = new Random().nextInt(10000);
+        Map<String, Object> param = new HashMap<>(16);
+        param.put("uniqueId", submitWorkPOJO.getUniqueId());
+        param.put("homeworkId", submitWorkPOJO.getHomeworkId());
+        param.put("openClassId", submitWorkPOJO.getOpenClassId());
+        param.put("homeworkTermTimeId", submitWorkPOJO.getHomeworkTermTimeId());
+        param.put("sourceType", 1);
+        param.put("isDraft", 0);
+        param.put("useTime", randomTime);
+        param.put("timestamp", Instant.now().toEpochMilli() + randomTime);
+        param.put("data", submitWorkPOJO.getData());
+
+        return HttpUtil.postJson(UrlFields.ICVE_SUBMIT_HOMEWORK, submitWorkPOJO.getCookie(), param);
+    }
+
+    /**
+     * 通用刷课参数，添加通用的方法
      *
      * @param form          请求参数，只需要填充关键参数
      * @param user          用户信息

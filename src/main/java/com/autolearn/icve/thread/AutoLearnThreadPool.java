@@ -1,6 +1,8 @@
 package com.autolearn.icve.thread;
 
-import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.IcveUser;
+import com.autolearn.icve.entity.icve.IcveUserAndId;
+import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.service.IcveCourseService;
 import com.xiaoleilu.hutool.util.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -104,6 +106,9 @@ public class AutoLearnThreadPool {
                 printLog("课件数:" + courseCellCount);
 
                 List<ProcessListDTO.ModuleList> moduleList = processList.getProgress().getModuleList();
+                if (CollectionUtil.isEmpty(moduleList)) {
+                    return new AsyncResult<>("无课件");
+                }
                 for (ProcessListDTO.ModuleList module : moduleList) {
 
                     // 当前模块名
@@ -120,6 +125,10 @@ public class AutoLearnThreadPool {
                     TopicListDTO listTopic = icveCourseService.listTopic(user.getCookie(), formModelMap);
                     if (listTopic != null && Objects.equals(listTopic.getCode(), 1)) {
                         List<TopicListDTO.TopicList> topics = listTopic.getTopicList();
+
+                        if (CollectionUtil.isEmpty(topics)) {
+                            continue;
+                        }
 
                         for (TopicListDTO.TopicList topic : topics) {
                             printLog("----" + topic.getName());
@@ -181,8 +190,8 @@ public class AutoLearnThreadPool {
 
                                             // 已完成的不用继续
                                             if (Objects.equals(cellPercent, 100)) {
-                                                // 即使完成也要等1秒
-                                                Thread.sleep(1 * 1000);
+                                                // 即使完成也要等2秒
+                                                Thread.sleep(2 * 1000);
                                                 continue;
                                             }
                                             // 根据分类制定不同刷课方案
@@ -218,8 +227,9 @@ public class AutoLearnThreadPool {
             printErrorLog("线程中断/取消", e);
             return new AsyncResult<>("cancel");
         } catch (Exception e) {
-            printErrorLog("刷课异常", e);
-            e.printStackTrace();
+            for (StackTraceElement element : e.getStackTrace()) {
+                printErrorLog("刷课异常\r\n" + element.getClassName() + "." + element.getMethodName() + ";行号:" + element.getLineNumber(), e);
+            }
 //            Thread.currentThread().interrupt();
             return new AsyncResult<>("fail");
         } finally {

@@ -1,6 +1,8 @@
 package com.autolearn.icve.service;
 
 import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.dto.*;
+import com.xiaoleilu.hutool.json.JSONObject;
 
 import java.util.Map;
 
@@ -110,4 +112,41 @@ public interface IcveCourseService {
      * @return
      */
     CourseListDTO.CourseList getCurrentCourse(String cookie, String id) throws InterruptedException;
+
+    /**
+     * 获取作业列表
+     *
+     * @param cookie
+     * @param unprocessed
+     * @return
+     */
+    HomeworkListDTO listHomework(String cookie, Integer unprocessed);
+
+    /**
+     * 获取作业详情
+     *
+     * @param cookie
+     * @param courseOpenId
+     * @param openClassId
+     * @param homeWorkId
+     * @param activityId
+     * @param hkTermTimeId
+     * @param faceType
+     * @return
+     */
+    HomeworkPreviewDTO getHomework(String cookie, String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType);
+
+    /**
+     * 获取答案
+     *
+     * @param q
+     * @return
+     */
+    String getAnswer(String q);
+
+    /**
+     *
+     * @param submitWorkPOJO 提交的对象
+     */
+    JSONObject submitWork(SubmitWorkPOJO submitWorkPOJO);
 }
