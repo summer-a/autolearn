@@ -179,6 +179,8 @@ public class AutoLearnThreadPool {
                                             // 获取课件信息
                                             ViewDirectoryDTO viewDirectory = icveCourseService.listViewDirectory(user.getCookie(), formCellMap);
 
+                                            if (viewDirectory == null || cellData.getCategoryName() == null) {continue;}
+
                                             String categoryName = cellData.getCategoryName();
 
                                             Integer cellPercent = viewDirectory.getCellPercent();
