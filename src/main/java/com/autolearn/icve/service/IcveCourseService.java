@@ -23,6 +23,13 @@ public interface IcveCourseService {
      *
      * @return
      */
+    void listCoursePage(String cookie) throws InterruptedException;
+
+    /**
+     * 获取课程列表
+     *
+     * @return
+     */
     CourseListDTO listCourse(String cookie) throws InterruptedException;
 
     /**
@@ -103,6 +110,14 @@ public interface IcveCourseService {
      * @param viewDirectory
      */
     void brushOther(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException;
+
+    /**
+     * 加时-文档
+     *
+     * @param user
+     * @param viewDirectory
+     */
+    void overtimeOffice(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException;
 
     /**
      * 获取当前课程信息

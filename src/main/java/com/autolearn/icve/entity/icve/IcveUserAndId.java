@@ -27,4 +27,9 @@ public class IcveUserAndId extends IcveUser implements Serializable {
     private String courseOpenId;
     private String openClassId;
 
+    /**
+     * 自定义字段(加时)
+     */
+    private Boolean overTime;
+
 }

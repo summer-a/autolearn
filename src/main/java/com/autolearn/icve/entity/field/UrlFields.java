@@ -21,6 +21,8 @@ public final class UrlFields {
     public static final String ICVE_VERIFY_CODE = "https://zjy2.icve.com.cn/api/common/VerifyCode/index";
     /** 获取课程列表 */
     public static final String ICVE_GET_LEARNNING_COURSE_LIST = "https://zjy2.icve.com.cn/student/learning/getLearnningCourseList";
+    /** 课程列表页面 */
+    public static final String ICVE_GET_COURSE_LIST_PAGE = "https://zjy2.icve.com.cn/student/learning/courseList.html?type=1";
     /** 获取处理列表 */
     public static final String ICVE_GET_PROCESS_LIST = "https://zjy2.icve.com.cn/api/study/process/getProcessList";
     /** 获取作业列表 */

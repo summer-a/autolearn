@@ -28,6 +28,9 @@ public class IcveUser implements Serializable {
 
     private String cookie;
 
+    /** 自定义字段(是否强制刷新) */
+    private Boolean forceRefresh;
+
     public void setUser(String user) {
         JSONObject jsonObject = new JSONObject(user == null ? "{}" : user);
         this.user = jsonObject.toBean(User.class, true);

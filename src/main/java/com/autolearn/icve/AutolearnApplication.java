@@ -14,7 +14,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class AutolearnApplication {
 
     public static void main(String[] args) {
-        log.info("项目启动:main方法启动");
         // 创建项目销毁钩子
         Runtime.getRuntime().addShutdownHook(new ShutdownHookClass());
         try {
@@ -23,9 +22,7 @@ public class AutolearnApplication {
             e.printStackTrace();
             log.error("项目main方法异常退出", e);
         }
-        log.info("项目销毁:main方法退出");
     }
-
 }
 
 /**

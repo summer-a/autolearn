@@ -1,15 +1,20 @@
 package com.autolearn.icve.controller;
 
-import com.autolearn.icve.entity.icve.*;
-import com.autolearn.icve.entity.icve.dto.*;
+import com.autolearn.icve.entity.icve.IcveUser;
+import com.autolearn.icve.entity.icve.IcveUserAndId;
+import com.autolearn.icve.entity.icve.ResultVO;
+import com.autolearn.icve.entity.icve.SubmitWorkPOJO;
+import com.autolearn.icve.entity.icve.dto.CourseListDTO;
+import com.autolearn.icve.entity.icve.dto.CourseTaskDTO;
+import com.autolearn.icve.entity.icve.dto.HomeworkListDTO;
+import com.autolearn.icve.entity.icve.dto.HomeworkPreviewDTO;
 import com.autolearn.icve.entity.thread.ThreadPoolInfo;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.service.IcveLoginService;
 import com.autolearn.icve.thread.AutoLearnThreadPool;
 import com.autolearn.icve.utils.SystemInfoUtil;
-import com.xiaoleilu.hutool.cron.TaskExecutor;
+import com.autolearn.icve.utils.UpdateCourseTaskUtil;
 import com.xiaoleilu.hutool.json.JSONObject;
-import com.xiaoleilu.hutool.thread.GlobalThreadPool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -120,7 +125,9 @@ public class CourseApi {
     @GetMapping("/course/list")
     public CourseListDTO getCourseList(IcveUser user) throws InterruptedException {
         // 获取当前用户，取消cookie，在拦截器判断，存入用户组
-        log.info("课程列表");
+        if (null != user.getForceRefresh() && user.getForceRefresh()) {
+            icveCourseService.listCoursePage(user.getCookie());
+        }
         return icveCourseService.listCourse(user.getCookie());
     }
 
@@ -146,20 +153,18 @@ public class CourseApi {
 
         log.info(user.getUser().getDisplayName() + "开始任务:" + user.getCourseId());
 
-        CourseTaskDTO<String> courseTask = new CourseTaskDTO<>();
-        courseTask.setCourseId(user.getCourseId());
-        courseTask.setState(CourseTaskDTO.StateEnum.QUEUE);
-        courseTask.setUserAccount(user.getUser().getUserName());
-        courseTask.setUserName(user.getUser().getDisplayName());
-
-        userQueue.put(userId, courseTask);
+        // 更新
+        new UpdateCourseTaskUtil<String>(userId, true)
+                .courseId(user.getCourseId())
+                .state(CourseTaskDTO.StateEnum.QUEUE)
+                .userAccount(user.getUser().getUserName())
+                .userName(user.getUser().getDisplayName())
+                .put();
 
         try {
             Future<String> result = autoLearnThreadPool.brush(user);
             // 存入Future
-            CourseTaskDTO courseTaskDTO = userQueue.get(userId);
-            courseTaskDTO.setFuture(result);
-            userQueue.put(userId, courseTaskDTO);
+            new UpdateCourseTaskUtil<String>(userId).future(result).put();
         } catch (RejectedExecutionException e) {
             log.info("队列已满,拒绝加入队列", e);
             return ResultVO.build(403, "当前队列已满", user.getCourseId());
@@ -208,6 +213,7 @@ public class CourseApi {
 
     /**
      * 提交答案
+     *
      * @param submitObj
      * @return
      */
@@ -218,7 +224,7 @@ public class CourseApi {
         if (jsonObject.getInt("code") == 1) {
             return true;
         }
-        return  false;
+        return false;
     }
 
     /**
@@ -256,8 +262,6 @@ public class CourseApi {
      */
     @GetMapping("/course")
     public CourseListDTO.CourseList nowProgress(String cookie, String id) throws InterruptedException {
-        log.info("获取课程信息");
-
         return icveCourseService.getCurrentCourse(cookie, id);
     }
 
@@ -275,7 +279,6 @@ public class CourseApi {
      */
     @GetMapping("/state/task")
     public CourseTaskDTO taskState(String id) {
-        log.info("从队列获取状态");
         CourseTaskDTO courseTask = userQueue.get(id);
         return courseTask;
     }

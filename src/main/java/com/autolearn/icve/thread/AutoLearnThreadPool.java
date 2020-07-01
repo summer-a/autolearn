@@ -4,6 +4,7 @@ import com.autolearn.icve.entity.icve.IcveUser;
 import com.autolearn.icve.entity.icve.IcveUserAndId;
 import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.service.IcveCourseService;
+import com.autolearn.icve.utils.UpdateCourseTaskUtil;
 import com.xiaoleilu.hutool.util.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class AutoLearnThreadPool {
     @Autowired
     private IcveCourseService icveCourseService;
 
+    /**
+     * 显示当前用户名和账户
+     */
     private String displayName;
 
     @Async
@@ -62,33 +66,25 @@ public class AutoLearnThreadPool {
 
         IcveUser.User userInfo = user.getUser();
 
-        CourseTaskDTO courseTaskDTO = userQueue.get(userInfo.getUserId());
-        courseTaskDTO.setState(CourseTaskDTO.StateEnum.START);
-        userQueue.put(userInfo.getUserId(), courseTaskDTO);
+        new UpdateCourseTaskUtil(userInfo.getUserId())
+                .state(null == user.getOverTime() || !user.getOverTime() ? CourseTaskDTO.StateEnum.START : CourseTaskDTO.StateEnum.ADD)
+                .put();
 
         this.displayName = userInfo.getUserName() + "|" + userInfo.getDisplayName();
 
         printLog("开始刷课");
 
         // 整个课程模块
-        Map<String, Object> formMap = new HashMap<>(8);
-        formMap.put("courseOpenId", user.getCourseOpenId());
-        formMap.put("openClassId", user.getOpenClassId());
+        Map<String, Object> formMap = initParam(user);
 
         // 子列表参数
-        Map<String, Object> formModelMap = new HashMap<>(8);
-        formModelMap.put("courseOpenId", user.getCourseOpenId());
+        Map<String, Object> formModelMap = initParam(user);
 
         // 单元列表参数
-        Map<String, Object> formTopicMap = new HashMap<>(8);
-        formTopicMap.put("courseOpenId", user.getCourseOpenId());
-        formTopicMap.put("openClassId", user.getOpenClassId());
-
+        Map<String, Object> formTopicMap = initParam(user);
 
         // 节点列表参数
-        Map<String, Object> formCellMap = new HashMap<>(8);
-        formCellMap.put("courseOpenId", user.getCourseOpenId());
-        formCellMap.put("openClassId", user.getOpenClassId());
+        Map<String, Object> formCellMap = initParam(user);
         formCellMap.put("flag", "s");
 
         try {
@@ -99,9 +95,7 @@ public class AutoLearnThreadPool {
                 Integer courseCellCount = processList.getOpenCourseCellCount();
 
                 // 更新课件数
-                CourseTaskDTO courseTaskDTO2 = userQueue.get(userInfo.getUserId());
-                courseTaskDTO2.setCourseCount(courseCellCount);
-                userQueue.put(userInfo.getUserId(), courseTaskDTO2);
+                new UpdateCourseTaskUtil(userInfo.getUserId()).courseCount(courseCellCount).put();
 
                 printLog("课件数:" + courseCellCount);
 
@@ -114,7 +108,7 @@ public class AutoLearnThreadPool {
                     // 当前模块名
                     printLog(module.getName());
 
-                    if (Objects.equals(module.getPercent(), 100)) {
+                    if (Objects.equals(module.getPercent(), 100) && !user.getOverTime()) {
                         printLog("该模组已完成");
                         continue;
                     }
@@ -147,7 +141,7 @@ public class AutoLearnThreadPool {
                                         // 当前单元名
                                         printLog("--------" + cell.getCellName());
 
-                                        if (Objects.equals(cell.getStuCellPercent(), 100)) {
+                                        if (Objects.equals(cell.getStuCellPercent(), 100) && !user.getOverTime()) {
                                             printLog("该课件已完成");
                                             continue;
                                         }
@@ -186,35 +180,49 @@ public class AutoLearnThreadPool {
                                             Integer cellPercent = viewDirectory.getCellPercent();
 
                                             // 更新课程信息到队列
-                                            CourseTaskDTO courseTask = userQueue.get(userInfo.getUserId());
-                                            courseTask.setCourse(cellData);
-                                            userQueue.put(userInfo.getUserId(), courseTask);
+                                            new UpdateCourseTaskUtil(userInfo.getUserId()).course(cellData).put();
 
                                             // 已完成的不用继续
-                                            if (Objects.equals(cellPercent, 100)) {
+                                            if (Objects.equals(cellPercent, 100) && !user.getOverTime()) {
                                                 // 即使完成也要等2秒
                                                 Thread.sleep(2 * 1000);
                                                 continue;
                                             }
-                                            // 根据分类制定不同刷课方案
-                                            switch (categoryName) {
-                                                case "视频":
-                                                case "音频":
-                                                    icveCourseService.brushVideo(user, viewDirectory);
-                                                    break;
-                                                case "文档":
-                                                case "ppt":
-                                                case "swf":
-                                                case "文本":
-                                                case "简单文本":
-                                                    icveCourseService.brushOffice(user, viewDirectory);
-                                                    break;
-                                                case "图片":
-                                                    icveCourseService.brushImage(user, viewDirectory);
-                                                    break;
-                                                default:
-                                                    icveCourseService.brushOther(user, viewDirectory);
-                                                    break;
+
+                                            if (user.getOverTime()) {
+                                                // 加时暂只支持文档
+                                                switch (categoryName) {
+                                                    case "文档":
+                                                    case "ppt":
+                                                    case "swf":
+                                                    case "文本":
+                                                    case "简单文本":
+                                                        icveCourseService.overtimeOffice(user, viewDirectory);
+                                                        break;
+                                                    default:
+                                                        break;
+                                                }
+                                            } else {
+                                                // 根据分类制定不同刷课方案
+                                                switch (categoryName) {
+                                                    case "视频":
+                                                    case "音频":
+                                                        icveCourseService.brushVideo(user, viewDirectory);
+                                                        break;
+                                                    case "文档":
+                                                    case "ppt":
+                                                    case "swf":
+                                                    case "文本":
+                                                    case "简单文本":
+                                                        icveCourseService.brushOffice(user, viewDirectory);
+                                                        break;
+                                                    case "图片":
+                                                        icveCourseService.brushImage(user, viewDirectory);
+                                                        break;
+                                                    default:
+                                                        icveCourseService.brushOther(user, viewDirectory);
+                                                        break;
+                                                }
                                             }
                                         }
                                     }
@@ -241,10 +249,35 @@ public class AutoLearnThreadPool {
         }
     }
 
+    /**
+     * 初始化参数
+     * @param user
+     * @return
+     */
+    private HashMap<String, Object> initParam(IcveUserAndId user) {
+        HashMap<String, Object> initMap = new HashMap<>(16);
+        initMap.put("courseOpenId", user.getCourseOpenId());
+        initMap.put("openClassId", user.getOpenClassId());
+        return initMap;
+    }
+
+    private void iteratorCell() {
+
+    }
+
+    /**
+     * 打印日志
+     * @param logger
+     */
     private void printLog(String logger) {
         log.info(String.format("[ %s ] %s", this.displayName, logger));
     }
 
+    /**
+     * 打印错误日志
+     * @param logger
+     * @param e
+     */
     private void printErrorLog(String logger, Throwable e) {
         log.error(String.format("[ %s ] %s", this.displayName, logger), e);
     }

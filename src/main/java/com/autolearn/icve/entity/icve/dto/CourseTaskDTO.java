@@ -7,6 +7,8 @@ import lombok.ToString;
 
 import java.util.concurrent.Future;
 
+import static com.autolearn.icve.controller.CourseApi.userQueue;
+
 /**
  * 用户课程任务信息
  * @author 胡江斌
@@ -44,10 +46,13 @@ public class  CourseTaskDTO<T> {
     public enum StateEnum {
         /** 已经开始运行 */
         START,
+        /** 课件加时 */
+        ADD,
         /** 正在队列中 */
         QUEUE,
         /** 已停止 */
         STOP
     }
+
 }
 

@@ -2,13 +2,16 @@ package com.autolearn.icve.service.impl;
 
 
 import com.autolearn.icve.entity.field.UrlFields;
-import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.IcveUserAndId;
+import com.autolearn.icve.entity.icve.SubmitWorkPOJO;
 import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.utils.HttpUtil;
+import com.autolearn.icve.utils.UpdateCourseTaskUtil;
 import com.autolearn.icve.utils.VideoUtil;
 import com.xiaoleilu.hutool.http.HttpResponse;
 import com.xiaoleilu.hutool.json.JSONArray;
+import com.xiaoleilu.hutool.json.JSONException;
 import com.xiaoleilu.hutool.json.JSONObject;
 import com.xiaoleilu.hutool.thread.GlobalThreadPool;
 import com.xiaoleilu.hutool.util.CollectionUtil;
@@ -18,10 +21,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
-
-import static com.autolearn.icve.controller.CourseApi.userQueue;
 
 /**
  * 职教云刷课工具,多例
@@ -36,6 +36,17 @@ import static com.autolearn.icve.controller.CourseApi.userQueue;
 @Slf4j
 @Service
 public class IcveCourseServiceImpl implements IcveCourseService {
+
+    /**
+     * 获取课程列表
+     *
+     * @param cookie
+     * @return
+     */
+    @Override
+    public void listCoursePage(String cookie) throws InterruptedException {
+        HttpUtil.get(UrlFields.ICVE_GET_COURSE_LIST_PAGE, cookie);
+    }
 
     /**
      * 获取课程列表
@@ -182,25 +193,29 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
         while (studyNewlyTime < audioVideoLong) {
 
-            // 更新进度
-            updatePercent(user.getUser().getUserId(), (int) (studyNewlyTime / audioVideoLong * 100.0));
-
             double randomDouble = new Random().nextDouble() / 1000.0 + 10.0;
             BigDecimal bigDecimal = new BigDecimal(randomDouble);
             // 每次请求时间需要隔10秒,取后6位
             studyNewlyTime += bigDecimal.setScale(6, RoundingMode.DOWN).stripTrailingZeros().doubleValue();
             // 超过视频时长则设置为视频时长
-            studyNewlyTime = studyNewlyTime > audioVideoLong ? audioVideoLong + 1 : studyNewlyTime;
+            studyNewlyTime = studyNewlyTime + randomDouble > audioVideoLong ? audioVideoLong + 1 : studyNewlyTime;
 
             // 这里10秒一次请求
             form.put("studyNewlyTime", studyNewlyTime);
             // 休眠10秒,如果是最后一段则根据时间休眠
             double sleepTime = (audioVideoLong - studyNewlyTime) < 10 ? ((audioVideoLong - studyNewlyTime) * 1000) : (10 * 1000);
-            sleep((long) (sleepTime < 1 ? 1 : sleepTime));
+            sleep((long) (sleepTime < 2 ? 2 : sleepTime));
+
+            log.info(user.toString());
+            log.info(viewDirectory.toString());
+            log.info(form.toString());
 
             if (!brush(user, viewDirectory, form)) {
                 return 0;
             }
+
+            // 更新进度
+            new UpdateCourseTaskUtil(user.getUser().getUserId()).percent((int) (studyNewlyTime / audioVideoLong * 100.0)).put();
         }
         return 1;
     }
@@ -224,26 +239,26 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         long begin = System.currentTimeMillis();
 
         // 开始访问刷课
-        // 判断页数，每页访问两秒，文档至少访问12秒
+        // 判断页数，每页访问两秒，文档至少访问15秒
         for (int i = 1; i <= pageCount; ) {
-
-            // 更新进度
-            updatePercent(user.getUser().getUserId(), (int) ((double) i / pageCount * 100.0));
 
             form.put("picNum", i);
             form.put("studyNewlyPicNum", i);
-            // 休眠2秒
-            sleep(2 * 1000);
+            // 休眠3秒
+            sleep(10 * 1000);
 
             if (!brush(user, viewDirectory, form)) {
-                return ;
+                return;
             }
 
-            // 如果时间小于10秒并且翻页翻完了就等待
-            if ((System.currentTimeMillis() - begin) < (10 * 1000) && (i == pageCount)) {
+            // 更新进度
+            new UpdateCourseTaskUtil(user.getUser().getUserId()).percent((int) ((double) i / pageCount * 100.0)).put();
+
+            // 如果时间小于15秒并且翻页翻完了就等待
+            if ((System.currentTimeMillis() - begin) < (15 * 1000) && (i == pageCount)) {
                 continue;
             } else {
-                i++;
+                i = i > pageCount ? pageCount : (i + 10);
             }
         }
     }
@@ -267,7 +282,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         brush(user, viewDirectory, form);
 
         // 更新进度
-        updatePercent(user.getUser().getUserId(), 100);
+        new UpdateCourseTaskUtil(user.getUser().getUserId()).percent(100).put();
     }
 
     @Override
@@ -281,32 +296,39 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         sleep(5 * 1000);
 
         brush(user, viewDirectory, form);
+
+        // 更新进度
+        new UpdateCourseTaskUtil(user.getUser().getUserId()).percent(100).put();
     }
 
     /**
-     * 刷课通用部分
+     * 加时-文档
      *
      * @param user
      * @param viewDirectory
-     * @param formParam
-     * @throws InterruptedException
      */
-    private boolean brush(IcveUserAndId user, ViewDirectoryDTO viewDirectory, Map<String, Object> formParam) throws InterruptedException {
+    @Override
+    public void overtimeOffice(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
+        Map<String, Object> form = new HashMap<>(8);
 
-        String newCookie = brushParam(formParam, user, viewDirectory);
+        form.put("studyNewlyTime", 0);
 
-        // 开始访问刷课
-        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, formParam);
-        // 判断进度，根据进度停止运行
-        if (resp != null) {
-            if (Objects.equals(resp.getInt("code"), 1)) {
-                log.debug(viewDirectory.getCategoryName() + ": " + resp.getStr("msg"));
-                return true;
-            } else {
-                log.error(viewDirectory.getCategoryName() + "进度请求失败:" + resp.toString());
+        // 页数获取
+        Integer pageCount = viewDirectory.getPageCount();
+
+        long begin = System.currentTimeMillis();
+
+        form.put("picNum", pageCount);
+        form.put("studyNewlyPicNum", pageCount);
+        do {
+            // 休眠3秒
+            sleep(7 * 1000);
+
+            if (!brush(user, viewDirectory, form)) {
+                return;
             }
-        }
-        return false;
+        } while ((System.currentTimeMillis() - begin) < (10 * 60 * 60 * 1000));
+        // 默认加时10小时
     }
 
     /**
@@ -376,7 +398,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
         HomeworkPreviewDTO.Param hParam = homeworkPreviewDTO.getParam();
         // 存入redis操作
-        GlobalThreadPool.execute(() -> {
+        try {
             JSONObject jsonObject = new JSONObject(homeworkPreviewDTO.getRedisData());
             JSONArray questions = jsonObject.getJSONArray("questions");
 
@@ -399,15 +421,25 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             param2.put("ids", ids);
             param2.put("questionIds", questionIds);
 
-            HttpUtil.postJson(UrlFields.ICVE_ADD_STU_REDIS_RECORD, cookie, param2);
-
-        });
+            JSONObject result = HttpUtil.postJson(UrlFields.ICVE_ADD_STU_REDIS_RECORD, cookie, param2);
+            Integer code = result.getInt("code");
+            if (null == code || code != 1) {
+                throw new Exception();
+            }
+        } catch (Exception e) {
+            log.error("作业存储redis异常", e);
+            HomeworkPreviewDTO hp = new HomeworkPreviewDTO();
+            hp.setCode(500);
+            hp.setMsg("获取失败，请刷新重试");
+            return hp;
+        }
 
         return homeworkPreviewDTO;
     }
 
     /**
      * 获取答案
+     *
      * @param q
      * @return
      */
@@ -426,6 +458,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
     /**
      * 提交作业
+     *
      * @param submitWorkPOJO
      */
     @Override
@@ -446,6 +479,36 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     }
 
     /**
+     * 刷课通用部分
+     *
+     * @param user
+     * @param viewDirectory
+     * @param formParam
+     * @throws InterruptedException
+     */
+    private boolean brush(IcveUserAndId user, ViewDirectoryDTO viewDirectory, Map<String, Object> formParam) throws InterruptedException {
+
+        String newCookie = brushParam(formParam, user, viewDirectory);
+
+        // 开始访问刷课
+        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, formParam);
+        // 判断进度，根据进度停止运行
+        if (resp != null) {
+            if (Objects.equals(resp.getInt("code"), 1)) {
+                log.debug(viewDirectory.getCategoryName() + ": " + resp.getStr("msg"));
+                return true;
+            } else {
+                log.info("cookie:" + newCookie);
+                log.info(user.toString());
+                log.info(viewDirectory.toString());
+                log.info(formParam.toString());
+                log.error(viewDirectory.getCategoryName() + "进度请求失败:" + resp.toString());
+            }
+        }
+        return false;
+    }
+
+    /**
      * 通用刷课参数，添加通用的方法
      *
      * @param form          请求参数，只需要填充关键参数
@@ -463,18 +526,6 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
         // 添加token到cookie
         return user.getCookie() + ";token=" + user.getUser().getToken();
-    }
-
-    /**
-     * 更新进度
-     *
-     * @param userId     用户id
-     * @param newPercent 新进度
-     */
-    private void updatePercent(String userId, Integer newPercent) {
-        CourseTaskDTO courseTask = userQueue.get(userId);
-        courseTask.setPercent(newPercent);
-        userQueue.put(userId, courseTask);
     }
 
     /**
