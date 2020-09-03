@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.Future;
 
-import static com.autolearn.icve.controller.CourseApi.userQueue;
+import static com.autolearn.icve.controller.WorkApi.userQueue;
 
 /**
  * @author 胡江斌
@@ -66,7 +66,7 @@ public class AutoLearnThreadPool {
 
         IcveUser.User userInfo = user.getUser();
 
-        new UpdateCourseTaskUtil(userInfo.getUserId())
+        UpdateCourseTaskUtil.bulider(userInfo.getUserId())
                 .state(null == user.getOverTime() || !user.getOverTime() ? CourseTaskDTO.StateEnum.START : CourseTaskDTO.StateEnum.ADD)
                 .put();
 
@@ -88,14 +88,14 @@ public class AutoLearnThreadPool {
         formCellMap.put("flag", "s");
 
         try {
-            ProcessListDTO processList = icveCourseService.listProcess(user.getCookie(), formMap);
+            ProcessListDTO processList = icveCourseService.listProcess(formMap, user.getCookie());
 
             if (processList != null && Objects.equals(processList.getCode(), 1)) {
 
                 Integer courseCellCount = processList.getOpenCourseCellCount();
 
                 // 更新课件数
-                new UpdateCourseTaskUtil(userInfo.getUserId()).courseCount(courseCellCount).put();
+                UpdateCourseTaskUtil.bulider(userInfo.getUserId()).courseCount(courseCellCount).put();
 
                 printLog("课件数:" + courseCellCount);
 
@@ -116,7 +116,7 @@ public class AutoLearnThreadPool {
                     formModelMap.put("moduleId", module.getId());
 
                     // 子列表
-                    TopicListDTO listTopic = icveCourseService.listTopic(user.getCookie(), formModelMap);
+                    TopicListDTO listTopic = icveCourseService.listTopic(formModelMap, user.getCookie());
                     if (listTopic != null && Objects.equals(listTopic.getCode(), 1)) {
                         List<TopicListDTO.TopicList> topics = listTopic.getTopicList();
 
@@ -129,7 +129,7 @@ public class AutoLearnThreadPool {
 
                             formTopicMap.put("topicId", topic.getId());
 
-                            CellListDTO cells = icveCourseService.listCell(user.getCookie(), formTopicMap);
+                            CellListDTO cells = icveCourseService.listCell(formTopicMap, user.getCookie());
 
                             if (cells != null && Objects.equals(cells.getCode(), 1)) {
 
@@ -171,7 +171,7 @@ public class AutoLearnThreadPool {
                                             formCellMap.put("cellId", cellData.getId());
 
                                             // 获取课件信息
-                                            ViewDirectoryDTO viewDirectory = icveCourseService.listViewDirectory(user.getCookie(), formCellMap);
+                                            ViewDirectoryDTO viewDirectory = icveCourseService.listViewDirectory(formCellMap, user.getCookie());
 
                                             if (viewDirectory == null || cellData.getCategoryName() == null) {continue;}
 
@@ -180,7 +180,7 @@ public class AutoLearnThreadPool {
                                             Integer cellPercent = viewDirectory.getCellPercent();
 
                                             // 更新课程信息到队列
-                                            new UpdateCourseTaskUtil(userInfo.getUserId()).course(cellData).put();
+                                            UpdateCourseTaskUtil.bulider(userInfo.getUserId()).course(cellData).put();
 
                                             // 已完成的不用继续
                                             if (Objects.equals(cellPercent, 100) && !user.getOverTime()) {
@@ -194,6 +194,7 @@ public class AutoLearnThreadPool {
                                                 switch (categoryName) {
                                                     case "文档":
                                                     case "ppt":
+                                                    case "pdf":
                                                     case "swf":
                                                     case "文本":
                                                     case "简单文本":
@@ -211,6 +212,7 @@ public class AutoLearnThreadPool {
                                                         break;
                                                     case "文档":
                                                     case "ppt":
+                                                    case "pdf":
                                                     case "swf":
                                                     case "文本":
                                                     case "简单文本":
@@ -259,10 +261,6 @@ public class AutoLearnThreadPool {
         initMap.put("courseOpenId", user.getCourseOpenId());
         initMap.put("openClassId", user.getOpenClassId());
         return initMap;
-    }
-
-    private void iteratorCell() {
-
     }
 
     /**

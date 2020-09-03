@@ -1,13 +1,12 @@
 package com.autolearn.icve.utils;
 
-import com.autolearn.icve.entity.field.UrlFields;
 import com.xiaoleilu.hutool.http.HttpRequest;
 import com.xiaoleilu.hutool.http.HttpResponse;
 import com.xiaoleilu.hutool.http.HttpStatus;
 import com.xiaoleilu.hutool.json.JSONObject;
 import org.springframework.util.StringUtils;
 
-import java.net.HttpCookie;
+import javax.swing.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -40,44 +39,31 @@ public class HttpUtil {
     }
 
     public static HttpResponse get(String url) {
-        return get(url, null);
-    }
-
-    public static HttpResponse get(String url, String cookie) {
         HttpResponse response = HttpRequest.get(url)
                 .header(headers)
-                .cookie(cookie)
+                .cookie(SpringUtil.getCurrentUser().getToken())
                 .setFollowRedirects(false)
                 .execute();
         return response;
     }
 
     public static HttpResponse post(String url) {
-        return post(url, null, null);
-    }
-
-    public static HttpResponse post(String url, String cookie) {
-        return post(url, cookie, null);
+        return post(url, null);
     }
 
     public static HttpResponse post(String url, Map<String, Object> formMap) {
-        return post(url, null, formMap);
+        HashMap nullMap = new HashMap<>();
+        return post(url, formMap, SpringUtil.getCurrentUser().getToken(), nullMap);
     }
 
-    public static HttpResponse post(String url, String cookie, Map<String, Object> formMap) {
-        HttpResponse response = HttpRequest.post(url)
-                .header(headers)
-                .cookie(cookie)
-                .form(formMap)
-                .setFollowRedirects(false)
-                .execute();
-        return response;
+    public static HttpResponse post(String url, Map<String, Object> formMap, String cookie) {
+        HashMap nullMap = new HashMap<>();
+        return post(url, formMap, cookie, nullMap);
     }
 
-    public static HttpResponse post(String url, String cookie, Map<String, Object> formMap, Map<String, List<String>> header) {
+    public static HttpResponse post(String url, Map<String, Object> formMap, String cookie, Map<String, List<String>> header) {
         Map<String, List<String>> newHeaders = new HashMap<>(headers);
         newHeaders.putAll(header);
-
         HttpResponse response = HttpRequest.post(url)
                 .header(newHeaders)
                 .cookie(cookie)
@@ -91,26 +77,37 @@ public class HttpUtil {
     /**
      * 请求响应对象
      * @param url
-     * @param cookie
      * @param param
      * @param classType
      * @param <T>
      * @return
      */
-    public static <T> T postBean(String url, String cookie, Map<String, Object> param, Class<T> classType) {
-        JSONObject jsonObject = postJson(url, cookie, param);
+    public static <T> T postBean(String url, Map<String, Object> param, Class<T> classType) {
+        JSONObject jsonObject = postJson(url, param, SpringUtil.getCurrentUser().getToken());
+        return jsonObject.toBean(classType, true);
+    }
+
+    /**
+     * 请求响应对象
+     * @param url
+     * @param param
+     * @param classType
+     * @param <T>
+     * @return
+     */
+    public static <T> T postBean(String url, Map<String, Object> param, String cookie, Class<T> classType) {
+        JSONObject jsonObject = postJson(url, param, cookie);
         return jsonObject.toBean(classType, true);
     }
 
     /**
      * 请求响应json
      * @param url
-     * @param cookie
      * @param param
      * @return
      */
-    public static JSONObject postJson(String url, String cookie, Map<String, Object> param) {
-        HttpResponse response = post(url, cookie, param);
+    public static JSONObject postJson(String url, Map<String, Object> param, String cookie) {
+        HttpResponse response = post(url, param, cookie);
         String body = response.body();
         if (response.getStatus() == HttpStatus.HTTP_OK  && !StringUtils.isEmpty(body)) {
             return new JSONObject(body);

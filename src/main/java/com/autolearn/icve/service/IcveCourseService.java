@@ -1,6 +1,7 @@
 package com.autolearn.icve.service;
 
-import com.autolearn.icve.entity.icve.*;
+import com.autolearn.icve.entity.icve.IcveUserAndId;
+import com.autolearn.icve.entity.icve.SubmitWorkPOJO;
 import com.autolearn.icve.entity.icve.dto.*;
 import com.xiaoleilu.hutool.json.JSONObject;
 
@@ -23,14 +24,14 @@ public interface IcveCourseService {
      *
      * @return
      */
-    void listCoursePage(String cookie) throws InterruptedException;
+    void listCoursePage() throws InterruptedException;
 
     /**
      * 获取课程列表
      *
      * @return
      */
-    CourseListDTO listCourse(String cookie) throws InterruptedException;
+    CourseListDTO listCourse() throws InterruptedException;
 
     /**
      * 标题列表
@@ -39,16 +40,7 @@ public interface IcveCourseService {
      * @param param
      * @return
      */
-    ProcessListDTO listProcess(String cookie, Map<String, Object> param) throws InterruptedException;
-
-    /**
-     * 简略标题列表
-     *
-     * @param cookie
-     * @param param
-     * @return
-     */
-    ClassListDTO listClass(String cookie, Map<String, Object> param) throws InterruptedException;
+    ProcessListDTO listProcess(Map<String, Object> param, String cookie) throws InterruptedException;
 
     /**
      * 获取子标题列表
@@ -57,7 +49,7 @@ public interface IcveCourseService {
      * @param param
      * @return
      */
-    TopicListDTO listTopic(String cookie, Map<String, Object> param) throws InterruptedException;
+    TopicListDTO listTopic(Map<String, Object> param, String cookie) throws InterruptedException;
 
     /**
      * 单元列表
@@ -66,7 +58,7 @@ public interface IcveCourseService {
      * @param param
      * @return
      */
-    CellListDTO listCell(String cookie, Map<String, Object> param) throws InterruptedException;
+    CellListDTO listCell(Map<String, Object> param, String cookie) throws InterruptedException;
 
     /**
      * 单个课件信息
@@ -75,7 +67,7 @@ public interface IcveCourseService {
      * @param param
      * @return
      */
-    ViewDirectoryDTO listViewDirectory(String cookie, Map<String, Object> param) throws InterruptedException;
+    ViewDirectoryDTO listViewDirectory(Map<String, Object> param, String cookie) throws InterruptedException;
 
     /**
      * 刷课
@@ -122,25 +114,22 @@ public interface IcveCourseService {
     /**
      * 获取当前课程信息
      *
-     * @param cookie cookie
      * @param id     课程id
      * @return
      */
-    CourseListDTO.CourseList getCurrentCourse(String cookie, String id) throws InterruptedException;
+    CourseListDTO.CourseList getCurrentCourse(String id) throws InterruptedException;
 
     /**
      * 获取作业列表
      *
-     * @param cookie
      * @param unprocessed
      * @return
      */
-    HomeworkListDTO listHomework(String cookie, Integer unprocessed);
+    HomeworkListDTO listHomework(Integer unprocessed);
 
     /**
      * 获取作业详情
      *
-     * @param cookie
      * @param courseOpenId
      * @param openClassId
      * @param homeWorkId
@@ -149,7 +138,7 @@ public interface IcveCourseService {
      * @param faceType
      * @return
      */
-    HomeworkPreviewDTO getHomework(String cookie, String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType);
+    HomeworkPreviewDTO getHomework(String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType);
 
     /**
      * 获取答案
@@ -160,8 +149,13 @@ public interface IcveCourseService {
     String getAnswer(String q);
 
     /**
-     *
      * @param submitWorkPOJO 提交的对象
      */
     JSONObject submitWork(SubmitWorkPOJO submitWorkPOJO);
+
+    /**
+     * 获取用户信息
+     * @return
+     */
+    String getUserInfo();
 }

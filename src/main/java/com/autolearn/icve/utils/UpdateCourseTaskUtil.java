@@ -1,11 +1,14 @@
 package com.autolearn.icve.utils;
 
+import com.autolearn.icve.controller.WorkApi;
 import com.autolearn.icve.entity.icve.dto.CellListDTO;
 import com.autolearn.icve.entity.icve.dto.CourseTaskDTO;
+import lombok.Builder;
+import lombok.Data;
 
 import java.util.concurrent.Future;
 
-import static com.autolearn.icve.controller.CourseApi.userQueue;
+import static com.autolearn.icve.controller.WorkApi.userQueue;
 
 /**
  * 修改CourseTaskDTO队列专用工具
@@ -17,7 +20,7 @@ import static com.autolearn.icve.controller.CourseApi.userQueue;
  * @description: TODO
  * @date 2020/6/26 12:02
  */
-public class UpdateCourseTaskUtil<T> {
+public class UpdateCourseTaskUtil {
 
     /**
      * 用户id
@@ -28,8 +31,16 @@ public class UpdateCourseTaskUtil<T> {
      */
     private CourseTaskDTO courseTask;
 
-    public UpdateCourseTaskUtil(String userId) {
-        this(userId, false);
+
+    public static UpdateCourseTaskUtil bulider(String userId) {
+        return new UpdateCourseTaskUtil(userId, false);
+    }
+
+    public static UpdateCourseTaskUtil bulider(String userId, boolean newObject) {
+        return new UpdateCourseTaskUtil(userId, newObject);
+    }
+
+    private UpdateCourseTaskUtil() {
     }
 
     /**
@@ -37,7 +48,7 @@ public class UpdateCourseTaskUtil<T> {
      * @param userId 用户id
      * @param newObject 是否直接创建个新对象而不需要从队列中获取
      */
-    public UpdateCourseTaskUtil(String userId, boolean newObject) {
+    private UpdateCourseTaskUtil(String userId, boolean newObject) {
 
         if (null == userId) {
             throw new NullPointerException("用户ID为空");
@@ -72,7 +83,7 @@ public class UpdateCourseTaskUtil<T> {
         return this;
     }
 
-    public UpdateCourseTaskUtil future(Future<T> future) {
+    public UpdateCourseTaskUtil future(Future<String> future) {
         courseTask.setFuture(future);
         return this;
     }
@@ -105,4 +116,5 @@ public class UpdateCourseTaskUtil<T> {
     public void put() {
         userQueue.put(userId, courseTask);
     }
+
 }

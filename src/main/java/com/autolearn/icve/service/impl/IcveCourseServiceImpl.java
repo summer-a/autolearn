@@ -11,9 +11,7 @@ import com.autolearn.icve.utils.UpdateCourseTaskUtil;
 import com.autolearn.icve.utils.VideoUtil;
 import com.xiaoleilu.hutool.http.HttpResponse;
 import com.xiaoleilu.hutool.json.JSONArray;
-import com.xiaoleilu.hutool.json.JSONException;
 import com.xiaoleilu.hutool.json.JSONObject;
-import com.xiaoleilu.hutool.thread.GlobalThreadPool;
 import com.xiaoleilu.hutool.util.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,99 +38,78 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     /**
      * 获取课程列表
      *
-     * @param cookie
      * @return
      */
     @Override
-    public void listCoursePage(String cookie) throws InterruptedException {
-        HttpUtil.get(UrlFields.ICVE_GET_COURSE_LIST_PAGE, cookie);
+    public void listCoursePage() {
+        HttpUtil.get(UrlFields.ICVE_GET_COURSE_LIST_PAGE);
     }
 
     /**
      * 获取课程列表
      *
-     * @param cookie
      * @return
      */
     @Override
-    public CourseListDTO listCourse(String cookie) throws InterruptedException {
+    public CourseListDTO listCourse() throws InterruptedException {
         // 睡眠一秒
         sleep(1 * 1000);
         HashMap<String, Object> param = new HashMap<>(2);
         param.put("type", 1);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_LEARNNING_COURSE_LIST, cookie, param, CourseListDTO.class);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_LEARNNING_COURSE_LIST, param, CourseListDTO.class);
     }
 
     /**
      * 标题列表
      *
-     * @param cookie
      * @param param
      * @return
      */
     @Override
-    public ProcessListDTO listProcess(String cookie, Map<String, Object> param) throws InterruptedException {
+    public ProcessListDTO listProcess(Map<String, Object> param, String cookie) throws InterruptedException {
         // 睡眠一秒
         sleep(1 * 1000);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_PROCESS_LIST, cookie, param, ProcessListDTO.class);
-    }
-
-    /**
-     * 简略标题列表
-     *
-     * @param cookie
-     * @param param
-     * @return
-     */
-    @Deprecated
-    @Override
-    public ClassListDTO listClass(String cookie, Map<String, Object> param) throws InterruptedException {
-        // 睡眠一秒
-        sleep(1 * 1000);
-        return null;
+        return HttpUtil.postBean(UrlFields.ICVE_GET_PROCESS_LIST, param, cookie, ProcessListDTO.class);
     }
 
     /**
      * 获取子标题列表
      *
-     * @param cookie
      * @param param
      * @return
      */
     @Override
-    public TopicListDTO listTopic(String cookie, Map<String, Object> param) throws InterruptedException {
+    public TopicListDTO listTopic(Map<String, Object> param, String cookie) throws InterruptedException {
         // 睡眠一秒
         sleep(2 * 1000);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_TOPIC_BY_MODULE_ID, cookie, param, TopicListDTO.class);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_TOPIC_BY_MODULE_ID, param, cookie, TopicListDTO.class);
     }
 
     /**
      * 单元列表
      *
-     * @param cookie
      * @param param
      * @return
      */
     @Override
-    public CellListDTO listCell(String cookie, Map<String, Object> param) throws InterruptedException {
+    public CellListDTO listCell(Map<String, Object> param, String cookie) throws InterruptedException {
         // 睡眠一秒
         sleep(2 * 1000);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_CELL_BY_TOPIC_ID, cookie, param, CellListDTO.class);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_CELL_BY_TOPIC_ID, param, cookie, CellListDTO.class);
     }
 
     /**
      * 单个课件信息
      *
-     * @param cookie
      * @param param
      * @return
      */
     @Override
-    public ViewDirectoryDTO listViewDirectory(String cookie, Map<String, Object> param) throws InterruptedException {
+    public ViewDirectoryDTO listViewDirectory(Map<String, Object> param, String cookie) throws InterruptedException {
         // 睡眠1秒
         sleep(1 * 1000);
 
-        JSONObject viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, cookie, param);
+        JSONObject viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
         if (Objects.equals(viewJson.getInt("code"), -100)) {
 
             param.put("moduleId", viewJson.getStr("currModuleId"));
@@ -142,13 +119,13 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             // 睡眠1秒
             sleep(2 * 1000);
 
-            JSONObject changeNodeJson = HttpUtil.postJson(UrlFields.ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA, cookie, param);
+            JSONObject changeNodeJson = HttpUtil.postJson(UrlFields.ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA, param, cookie);
 
             if (Objects.equals(changeNodeJson.getInt("code"), 1)) {
                 // 休眠半秒
                 sleep(1000);
                 // 重新获取页面
-                viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, cookie, param);
+                viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
                 return viewJson.toBean(ViewDirectoryDTO.class, true);
             }
         } else if (Objects.equals(viewJson.getInt("code"), 1)) {
@@ -204,18 +181,14 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             form.put("studyNewlyTime", studyNewlyTime);
             // 休眠10秒,如果是最后一段则根据时间休眠
             double sleepTime = (audioVideoLong - studyNewlyTime) < 10 ? ((audioVideoLong - studyNewlyTime) * 1000) : (10 * 1000);
-            sleep((long) (sleepTime < 2 ? 2 : sleepTime));
-
-            log.info(user.toString());
-            log.info(viewDirectory.toString());
-            log.info(form.toString());
+            sleep((long) (sleepTime < 2000 ? 2000 : sleepTime));
 
             if (!brush(user, viewDirectory, form)) {
                 return 0;
             }
 
             // 更新进度
-            new UpdateCourseTaskUtil(user.getUser().getUserId()).percent((int) (studyNewlyTime / audioVideoLong * 100.0)).put();
+            UpdateCourseTaskUtil.bulider(user.getUser().getUserId()).percent((int) (studyNewlyTime / audioVideoLong * 100.0)).put();
         }
         return 1;
     }
@@ -252,7 +225,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             }
 
             // 更新进度
-            new UpdateCourseTaskUtil(user.getUser().getUserId()).percent((int) ((double) i / pageCount * 100.0)).put();
+            UpdateCourseTaskUtil.bulider(user.getUser().getUserId()).percent((int) ((double) i / pageCount * 100.0)).put();
 
             // 如果时间小于15秒并且翻页翻完了就等待
             if ((System.currentTimeMillis() - begin) < (15 * 1000) && (i == pageCount)) {
@@ -282,7 +255,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         brush(user, viewDirectory, form);
 
         // 更新进度
-        new UpdateCourseTaskUtil(user.getUser().getUserId()).percent(100).put();
+        UpdateCourseTaskUtil.bulider(user.getUser().getUserId()).percent(100).put();
     }
 
     @Override
@@ -298,7 +271,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         brush(user, viewDirectory, form);
 
         // 更新进度
-        new UpdateCourseTaskUtil(user.getUser().getUserId()).percent(100).put();
+        UpdateCourseTaskUtil.bulider(user.getUser().getUserId()).percent(100).put();
     }
 
     /**
@@ -333,19 +306,19 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
     /**
      * 获取当前课程信息
+     * 用户信息
      *
-     * @param cookie 用户信息
-     * @param id     课程id
+     * @param id 课程id
      * @return
      */
     @Override
-    public CourseListDTO.CourseList getCurrentCourse(String cookie, String id) throws InterruptedException {
+    public CourseListDTO.CourseList getCurrentCourse(String id) throws InterruptedException {
         // 睡眠1秒
         sleep(1 * 1000);
 
         CourseListDTO.CourseList nullCourseList = new CourseListDTO.CourseList();
 
-        CourseListDTO courseListDTO = listCourse(cookie);
+        CourseListDTO courseListDTO = listCourse();
 
         if (courseListDTO != null) {
             List<CourseListDTO.CourseList> courseList = courseListDTO.getCourseList();
@@ -361,21 +334,19 @@ public class IcveCourseServiceImpl implements IcveCourseService {
     /**
      * 获取作业列表
      *
-     * @param cookie
      * @param unprocessed
      * @return
      */
     @Override
-    public HomeworkListDTO listHomework(String cookie, Integer unprocessed) {
+    public HomeworkListDTO listHomework(Integer unprocessed) {
         Map<String, Object> param = new HashMap<>(2);
         param.put("unprocessed", unprocessed);
-        return HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_LIST, cookie, param, HomeworkListDTO.class);
+        return HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_LIST, param, HomeworkListDTO.class);
     }
 
     /**
      * 获取作业详情
      *
-     * @param cookie
      * @param courseOpenId
      * @param openClassId
      * @param homeWorkId
@@ -385,7 +356,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
      * @return
      */
     @Override
-    public HomeworkPreviewDTO getHomework(String cookie, String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType) {
+    public HomeworkPreviewDTO getHomework(String courseOpenId, String openClassId, String homeWorkId, String activityId, String hkTermTimeId, String faceType) {
         Map<String, Object> param = new HashMap<>(16);
         param.put("courseOpenId", courseOpenId);
         param.put("openClassId", openClassId);
@@ -394,7 +365,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         param.put("hkTermTimeId", hkTermTimeId);
         param.put("faceType", faceType);
 
-        HomeworkPreviewDTO homeworkPreviewDTO = HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_PREVIEW, cookie, param, HomeworkPreviewDTO.class);
+        HomeworkPreviewDTO homeworkPreviewDTO = HttpUtil.postBean(UrlFields.ICVE_GET_HOMEWORK_PREVIEW, param, HomeworkPreviewDTO.class);
 
         HomeworkPreviewDTO.Param hParam = homeworkPreviewDTO.getParam();
         // 存入redis操作
@@ -421,7 +392,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             param2.put("ids", ids);
             param2.put("questionIds", questionIds);
 
-            JSONObject result = HttpUtil.postJson(UrlFields.ICVE_ADD_STU_REDIS_RECORD, cookie, param2);
+            JSONObject result = HttpUtil.postJson(UrlFields.ICVE_ADD_STU_REDIS_RECORD, param2, null);
             Integer code = result.getInt("code");
             if (null == code || code != 1) {
                 throw new Exception();
@@ -435,6 +406,12 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         }
 
         return homeworkPreviewDTO;
+    }
+
+    @Override
+    public String getUserInfo() {
+        HttpResponse post = HttpUtil.post(UrlFields.ICVE_GET_USER_INFO);
+        return post.body();
     }
 
     /**
@@ -475,7 +452,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         param.put("timestamp", Instant.now().toEpochMilli() + randomTime);
         param.put("data", submitWorkPOJO.getData());
 
-        return HttpUtil.postJson(UrlFields.ICVE_SUBMIT_HOMEWORK, submitWorkPOJO.getCookie(), param);
+        return HttpUtil.postJson(UrlFields.ICVE_SUBMIT_HOMEWORK, param, null);
     }
 
     /**
@@ -491,7 +468,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         String newCookie = brushParam(formParam, user, viewDirectory);
 
         // 开始访问刷课
-        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, newCookie, formParam);
+        JSONObject resp = HttpUtil.postJson(UrlFields.ICVE_STU_PROCESS_CELL_LOG, formParam, newCookie);
         // 判断进度，根据进度停止运行
         if (resp != null) {
             if (Objects.equals(resp.getInt("code"), 1)) {

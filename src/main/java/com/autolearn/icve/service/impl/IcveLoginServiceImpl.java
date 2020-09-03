@@ -40,14 +40,14 @@ public class IcveLoginServiceImpl implements IcveLoginService {
 
         IcveUser user = null;
         try {
-            Optional<String> verifyCodeCookieStr = Arrays.stream(verifyCodeCookie.split(",")).map(cookie -> cookie.split(";")[0]).reduce((before, after) -> before + ";" + after);
+//            Optional<String> verifyCodeCookieStr = Arrays.stream(verifyCodeCookie.split(",")).map(cookie -> cookie.split(";")[0]).reduce((before, after) -> before + ";" + after);
 
             Map<String, Object> formMap = new HashMap<>(3);
             formMap.put("userName", username);
             formMap.put("userPwd", password);
             formMap.put("verifyCode", verifyCode);
 
-            HttpResponse response = HttpUtil.post(UrlFields.ICVE_LOGIN_REQUEST, verifyCodeCookieStr.get(), formMap);
+            HttpResponse response = HttpUtil.post(UrlFields.ICVE_LOGIN_REQUEST, formMap, verifyCodeCookie, new HashMap<>());
 
             user = new IcveUser();
             user.setUser(response.body());
