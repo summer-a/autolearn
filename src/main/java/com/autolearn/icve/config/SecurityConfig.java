@@ -1,14 +1,17 @@
 package com.autolearn.icve.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 安全配置
@@ -22,52 +25,38 @@ import javax.servlet.http.HttpServletResponse;
 @Configuration
 public class SecurityConfig implements WebMvcConfigurer {
 
+    @Resource
+    private LoginInterceptor loginInterceptor;
+
     /**
      * 拦截器
      * @param registry
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor())
+        List<String> noLoginUrl = Arrays.asList(
+                "/api/threadpool/info",
+                "/api/verifyCode",
+                "/api/msg",
+                "/api/set/msg",
+                "/api/state/task",
+                "/api/login",
+                "/api/pay"
+        );
+        registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/api/login");
+                .excludePathPatterns(noLoginUrl);
+
     }
 
-    /**
-     * 登录请求拦截器
-     */
-    class LoginInterceptor implements HandlerInterceptor {
-
-        /**
-         * 前置处理器
-         * @param request
-         * @param response
-         * @param handler
-         * @return
-         * @throws Exception
-         */
-        @Override
-        public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-//            String cookie = request.getHeader("Cookie");
-//            if (StringUtils.isEmpty(cookie)) {
-//                return false;
-//            }
-            // 会话过期处理
-
-            return true;
-        }
-
-
-        /**
-         * 后置处理器
-         * @param request
-         * @param response
-         * @param handler
-         * @param modelAndView
-         */
-        @Override
-        public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) {
-
-        }
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowCredentials(true)
+                .allowedHeaders("*")
+                .allowedMethods("POST", "GET", "OPTIONS")
+                .allowedOrigins("*")
+                .maxAge(3600);
     }
+
 }
