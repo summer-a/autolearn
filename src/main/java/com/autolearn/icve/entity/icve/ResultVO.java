@@ -27,7 +27,7 @@ public class ResultVO<T> implements Serializable {
 
     private T data;
 
-    private ResultVO() {
+    public ResultVO() {
     }
 
     public static <T> ResultVO<T> ok() {

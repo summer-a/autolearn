@@ -28,6 +28,9 @@ public class IcveUser implements Serializable {
 
     private String cookie;
 
+    /** 用于换取cookie */
+    private String token;
+
     /** 自定义字段(是否强制刷新) */
     private Boolean forceRefresh;
 

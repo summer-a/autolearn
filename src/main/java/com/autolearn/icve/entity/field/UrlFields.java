@@ -39,6 +39,9 @@ public final class UrlFields {
     public static final String ICVE_STU_PROCESS_CELL_LOG = "https://zjy2.icve.com.cn/api/common/Directory/stuProcessCellLog";
     /** 更改不同进度课件 */
     public static final String ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA = "https://zjy2.icve.com.cn/api/common/Directory/changeStuStudyProcessCellData";
+    /** 获取用户信息 */
+    public static final String ICVE_GET_USER_INFO = "https://zjy2.icve.com.cn/api/student/stuInfo/getStuInfo";
+
 
     /** 添加redis 学生记录  */
     public static final String ICVE_ADD_STU_REDIS_RECORD = "https://security.zjy2.icve.com.cn/api/study/homework/addStuRedisRecord";

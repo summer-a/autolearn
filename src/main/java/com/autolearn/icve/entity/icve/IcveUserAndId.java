@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 
 /**
@@ -31,5 +32,7 @@ public class IcveUserAndId extends IcveUser implements Serializable {
      * 自定义字段(加时)
      */
     private Boolean overTime;
+
+//    private HttpServletRequest request;
 
 }

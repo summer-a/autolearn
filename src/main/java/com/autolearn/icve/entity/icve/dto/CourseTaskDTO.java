@@ -7,8 +7,6 @@ import lombok.ToString;
 
 import java.util.concurrent.Future;
 
-import static com.autolearn.icve.controller.CourseApi.userQueue;
-
 /**
  * 用户课程任务信息
  * @author 胡江斌
@@ -22,7 +20,7 @@ import static com.autolearn.icve.controller.CourseApi.userQueue;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class  CourseTaskDTO<T> {
+public class  CourseTaskDTO {
     /** 课程id */
     private String courseId;
     /** 用户账户 */
@@ -30,7 +28,7 @@ public class  CourseTaskDTO<T> {
     /** 用户姓名 */
     private String userName;
     /** 任务返回结果 */
-    private Future<T> future;
+    private Future<String> future;
     /** 当前运行状态 */
     private StateEnum state;
     /** 当前刷到的课程 */
