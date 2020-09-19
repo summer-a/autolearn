@@ -6,7 +6,6 @@ import com.autolearn.icve.entity.icve.dto.CourseListDTO;
 import com.autolearn.icve.entity.icve.dto.HomeworkListDTO;
 import com.autolearn.icve.entity.icve.dto.HomeworkPreviewDTO;
 import com.autolearn.icve.service.IcveCourseService;
-import com.autolearn.icve.utils.PayUtils;
 import com.xiaoleilu.hutool.json.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,11 +122,6 @@ public class CourseApi {
     public String userInfo() {
         log.info("获取用户信息");
         return icveCourseService.getUserInfo();
-    }
-
-    @GetMapping("/pay")
-    public String submitPay() {
-        return new PayUtils().pay("测试", 0.1, 1, "", "", null);
     }
 
 }
