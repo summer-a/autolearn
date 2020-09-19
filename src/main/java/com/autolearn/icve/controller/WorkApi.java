@@ -64,15 +64,6 @@ public class WorkApi {
     @Resource
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
-    @GetMapping(value = "/stack/info")
-    public SystemInfoUtil getStackInfo(HttpServletRequest request, String pwd) {
-        log.info("获取堆栈信息");
-        if (Objects.equals(pwd, STACK_INFO_PWD)) {
-            return SystemInfoUtil.getInstance(request);
-        }
-        return null;
-    }
-
     /**
      * 开始刷课
      *
@@ -149,15 +140,31 @@ public class WorkApi {
     }
 
     /**
-     * 根据id查询是否有任务在进行
+     * 根据用户id查询是否有任务在进行
      *
-     * @param id
-     * @return 课程id
+     * @param id 课程id
+     * @return
      */
     @GetMapping("/state/task")
     public CourseTaskDTO taskState(String id) {
         CourseTaskDTO courseTask = userQueue.get(id);
         return courseTask;
+    }
+
+    /**
+     * 获取系统信息
+     *
+     * @param request
+     * @param pwd
+     * @return
+     */
+    @GetMapping(value = "/server/info")
+    public SystemInfoUtil getStackInfo(HttpServletRequest request, String pwd) {
+        log.info("获取系统信息");
+        if (Objects.equals(pwd, STACK_INFO_PWD)) {
+            return SystemInfoUtil.getInstance(request);
+        }
+        return null;
     }
 
     /**
@@ -199,9 +206,12 @@ public class WorkApi {
     }
 
     @GetMapping(value = "/set/msg", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE})
-    public ResultVO setMsg(String m) {
+    public ResultVO setMsg(String pwd, String m) {
         log.info("设置公告");
-        return ResultVO.ok(msg = m);
+        if (Objects.equals(pwd, STACK_INFO_PWD)) {
+            return ResultVO.ok(msg = m);
+        }
+        return ResultVO.fail("密码有误");
     }
 
     @GetMapping("/show")
