@@ -16,6 +16,8 @@
 | 查看系统信息 | /api/server/info?pwd=123456 |
 | 获取队列信息 | /api/queue/info |
 | 获取某用户任务运行状态 | /api/state/task?id=用户id |
-其中配置项 (stackinfo.pwd: 123456) 用于设置访问密码,如上的pwd参数
+
+
+- 其中配置项 (stackinfo.pwd: 123456) 用于设置访问密码,如上的pwd参数
 ### 注意事项
 **在VideoUtil类中使用了ffmpeg工具，用于获取视频流的视频时长，需要在本地或服务器安装ffmpeg工具，这里是使用Docker安装的opencoconut/ffmpeg镜像，你也可以修改该工具类中的命令进行本地安装**
