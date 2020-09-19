@@ -74,9 +74,10 @@ public interface IcveCourseService {
      *
      * @param user          用户信息
      * @param viewDirectory 课件信息
+     * @param brushVideo    是否从视频上次播放位置刷
      * @return
      */
-    int brushVideo(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException;
+    int brushVideo(IcveUserAndId user, ViewDirectoryDTO viewDirectory, boolean brushVideo) throws InterruptedException;
 
     /**
      * 刷课-office

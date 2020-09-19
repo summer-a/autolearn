@@ -208,7 +208,7 @@ public class AutoLearnThreadPool {
                                                 switch (categoryName) {
                                                     case "视频":
                                                     case "音频":
-                                                        icveCourseService.brushVideo(user, viewDirectory);
+                                                        icveCourseService.brushVideo(user, viewDirectory, false);
                                                         break;
                                                     case "文档":
                                                     case "ppt":

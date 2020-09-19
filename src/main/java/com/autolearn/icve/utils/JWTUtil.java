@@ -7,6 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.autolearn.icve.entity.icve.IcveUser;
+import org.springframework.util.StringUtils;
 
 import java.util.Calendar;
 import java.util.Map;
@@ -53,8 +54,8 @@ public class JWTUtil {
      * @return
      */
     public static DecodedJWT require(String token) {
-        if (null == token) {
-            throw new JWTDecodeException("token为空");
+        if (StringUtils.isEmpty(token)) {
+            throw new JWTDecodeException("token不能为空");
         }
         JWTVerifier build = JWT.require(Algorithm.HMAC256(SALT)).build();
         try {

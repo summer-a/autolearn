@@ -3,7 +3,6 @@ package com.autolearn.icve.config;
 import com.auth0.jwt.exceptions.*;
 import com.autolearn.icve.entity.icve.ResultVO;
 import com.autolearn.icve.utils.JWTUtil;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.xiaoleilu.hutool.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -53,7 +52,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             // 验证通过
             return true;
         } catch (NullPointerException e) {
-            resultVO.setMsg("token为空");
+            resultVO.setMsg("token不能为空");
             e.printStackTrace();
         } catch (TokenExpiredException e) {
             resultVO.setMsg("token已过期");
@@ -74,6 +73,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             resultVO.setMsg("token验证失败");
             e.printStackTrace();
         }
+        response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         resultVO.setCode(500);
         JSONObject jsonObject = new JSONObject(resultVO);

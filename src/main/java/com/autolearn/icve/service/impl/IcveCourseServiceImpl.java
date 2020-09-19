@@ -140,10 +140,11 @@ public class IcveCourseServiceImpl implements IcveCourseService {
      *
      * @param user          用户信息
      * @param viewDirectory 课件信息
+     * @param restart       是否从视频上次播放位置刷
      * @return 0：失败，1：成功，2获取视频时长失败
      */
     @Override
-    public int brushVideo(IcveUserAndId user, ViewDirectoryDTO viewDirectory) throws InterruptedException {
+    public int brushVideo(IcveUserAndId user, ViewDirectoryDTO viewDirectory, boolean restart) throws InterruptedException {
         Map<String, Object> form = new HashMap<>(8);
 
         form.put("picNum", 0);
@@ -167,6 +168,10 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         }
         // 当前进度
         Double studyNewlyTime = viewDirectory.getStuStudyNewlyTime();
+
+        if (!restart) {
+            studyNewlyTime = 0D;
+        }
 
         while (studyNewlyTime < audioVideoLong) {
 
