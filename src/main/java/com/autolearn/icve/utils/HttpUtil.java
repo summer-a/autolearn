@@ -26,25 +26,33 @@ public class HttpUtil {
 
     static {
         headers.put("User-Agent", Arrays.asList("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36"));
-        headers.put("Accept", Arrays.asList("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"));
+        headers.put("Accept", Arrays.asList("application/json, text/javascript, */*; q=0.01,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"));
         headers.put("Accept-Encoding", Arrays.asList("gzip, deflate, br"));
         headers.put("Accept-Language", Arrays.asList("zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7"));
         headers.put("X-Requested-With" , Arrays.asList("XMLHttpRequest"));
         headers.put("Sec-Fetch-Dest", Arrays.asList("empty"));
         headers.put("Sec-Fetch-Mode", Arrays.asList("cors"));
         headers.put("Sec-Fetch-Site", Arrays.asList("same-origin"));
+
+        headers.put("Connection", Arrays.asList("keep-alive"));
+        headers.put("Content-Type", Arrays.asList("application/x-www-form-urlencoded; charset=UTF-8"));
+        headers.put("Origin", Arrays.asList("https://zjy2.icve.com.cn"));
+
     }
 
     private HttpUtil() {
     }
 
     public static HttpResponse get(String url) {
-        HttpResponse response = HttpRequest.get(url)
-                .header(headers)
-                .cookie(SpringUtil.getCurrentUser().getToken())
-                .setFollowRedirects(false)
-                .execute();
-        return response;
+        return get(url, null);
+    }
+
+    public static HttpResponse get(String url, String token) {
+        HttpRequest request = HttpRequest.get(url).header(headers).setFollowRedirects(false);
+        if (!StringUtils.isEmpty(token)) {
+            request.cookie(token);
+        }
+        return request.execute();
     }
 
     public static HttpResponse post(String url) {

@@ -7,6 +7,7 @@ import com.autolearn.icve.entity.icve.SubmitWorkPOJO;
 import com.autolearn.icve.entity.icve.dto.*;
 import com.autolearn.icve.service.IcveCourseService;
 import com.autolearn.icve.utils.HttpUtil;
+import com.autolearn.icve.utils.SpringUtil;
 import com.autolearn.icve.utils.UpdateCourseTaskUtil;
 import com.autolearn.icve.utils.VideoUtil;
 import com.xiaoleilu.hutool.http.HttpResponse;
@@ -42,7 +43,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
      */
     @Override
     public void listCoursePage() {
-        HttpUtil.get(UrlFields.ICVE_GET_COURSE_LIST_PAGE);
+        HttpUtil.get(UrlFields.ICVE_GET_COURSE_LIST_PAGE, SpringUtil.getCurrentToken());
     }
 
     /**
@@ -109,29 +110,36 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         // 睡眠1秒
         sleep(1 * 1000);
 
-        JSONObject viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
-        if (Objects.equals(viewJson.getInt("code"), -100)) {
+        ViewDirectoryDTO result = getCourseInfo(param, cookie);
 
-            param.put("moduleId", viewJson.getStr("currModuleId"));
-            param.put("cellId", viewJson.getStr("curCellId"));
-            param.put("cellName", viewJson.getStr("currCellName"));
-
-            // 睡眠1秒
-            sleep(2 * 1000);
-
-            JSONObject changeNodeJson = HttpUtil.postJson(UrlFields.ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA, param, cookie);
-
-            if (Objects.equals(changeNodeJson.getInt("code"), 1)) {
-                // 休眠半秒
-                sleep(1000);
-                // 重新获取页面
-                viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
-                return viewJson.toBean(ViewDirectoryDTO.class, true);
+        String categoryName = result.getCategoryName();
+        if (Objects.nonNull(result) && Objects.nonNull(categoryName) && !categoryName.contains("视频") && !categoryName.contains("音频")) {
+            // 判断是否需要更新课件
+            Integer pageCount = result.getPageCount();
+            Integer cellPercent = result.getCellPercent();
+            // 页数0则更新,没刷完的也更新一遍
+            boolean needUpdate = Objects.equals(pageCount, 0) || (cellPercent > 0 && cellPercent < 100);
+            if (needUpdate) {
+                Map<String, Object> updateParam = new HashMap<>(16);
+                param.put("cellId", result.getCellId());
+                JSONObject resUrl = new JSONObject(Objects.isNull(result.getResUrl()) ? "{}" : result.getResUrl());
+                Integer pCount = null;
+                try {
+                    pCount = resUrl.getJSONObject("args").getInt("page_count");
+                    if (Objects.isNull(pCount)) {
+                        throw new NullPointerException("获取页数失败");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                param.put("cellData", "zjy,0," + pCount);
+                JSONObject jsonObject = HttpUtil.postJson(UrlFields.ICVE_UPDATE_CELL_DATA, updateParam, cookie);
+                log.info(jsonObject.toStringPretty());
+                result = getCourseInfo(param, cookie);
             }
-        } else if (Objects.equals(viewJson.getInt("code"), 1)) {
-            return viewJson.toBean(ViewDirectoryDTO.class, true);
         }
-        return null;
+
+        return result;
     }
 
 
@@ -214,15 +222,17 @@ public class IcveCourseServiceImpl implements IcveCourseService {
         // 页数获取
         Integer pageCount = viewDirectory.getPageCount();
 
-        long begin = System.currentTimeMillis();
-
         // 开始访问刷课
-        // 判断页数，每页访问两秒，文档至少访问15秒
-        for (int i = 1; i <= pageCount; ) {
-
+        int i = 1;
+        boolean isOver = false;
+        while (!isOver) {
+            if (i >= pageCount) {
+                i = pageCount;
+                isOver = true;
+            }
             form.put("picNum", i);
             form.put("studyNewlyPicNum", i);
-            // 休眠3秒
+            // 休眠
             sleep(10 * 1000);
 
             if (!brush(user, viewDirectory, form)) {
@@ -231,13 +241,7 @@ public class IcveCourseServiceImpl implements IcveCourseService {
 
             // 更新进度
             UpdateCourseTaskUtil.bulider(user.getUser().getUserId()).percent((int) ((double) i / pageCount * 100.0)).put();
-
-            // 如果时间小于15秒并且翻页翻完了就等待
-            if ((System.currentTimeMillis() - begin) < (15 * 1000) && (i == pageCount)) {
-                continue;
-            } else {
-                i = i > pageCount ? pageCount : (i + 10);
-            }
+            i += 10;
         }
     }
 
@@ -488,6 +492,41 @@ public class IcveCourseServiceImpl implements IcveCourseService {
             }
         }
         return false;
+    }
+
+    /**
+     * 获取课程信息
+     *
+     * @param param
+     * @param cookie
+     * @throws InterruptedException
+     */
+    private ViewDirectoryDTO getCourseInfo(Map<String, Object> param, String cookie) throws InterruptedException {
+        ViewDirectoryDTO result = null;
+
+        JSONObject viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
+        if (Objects.equals(viewJson.getInt("code"), -100)) {
+
+            param.put("moduleId", viewJson.getStr("currModuleId"));
+            param.put("cellId", viewJson.getStr("curCellId"));
+            param.put("cellName", viewJson.getStr("currCellName"));
+
+            // 睡眠2秒
+            sleep(2 * 1000);
+
+            JSONObject changeNodeJson = HttpUtil.postJson(UrlFields.ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA, param, cookie);
+
+            if (Objects.equals(changeNodeJson.getInt("code"), 1)) {
+                // 休眠半秒
+                sleep(1000);
+                // 重新获取页面
+                viewJson = HttpUtil.postJson(UrlFields.ICVE_VIEW_DIRECTORY, param, cookie);
+                result = viewJson.toBean(ViewDirectoryDTO.class, true);
+            }
+        } else if (Objects.equals(viewJson.getInt("code"), 1)) {
+            result = viewJson.toBean(ViewDirectoryDTO.class, true);
+        }
+        return result;
     }
 
     /**

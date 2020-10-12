@@ -184,8 +184,8 @@ public class AutoLearnThreadPool {
 
                                             // 已完成的不用继续
                                             if (Objects.equals(cellPercent, 100) && !user.getOverTime()) {
-                                                // 即使完成也要等2秒
-                                                Thread.sleep(2 * 1000);
+                                                // 即使完成也要等3秒
+                                                Thread.sleep(3 * 1000);
                                                 continue;
                                             }
 

@@ -1,5 +1,6 @@
 package com.autolearn.icve.controller;
 
+import com.autolearn.icve.config.annotation.GetMappingJson;
 import com.autolearn.icve.entity.icve.IcveUser;
 import com.autolearn.icve.entity.icve.SubmitWorkPOJO;
 import com.autolearn.icve.entity.icve.dto.CourseListDTO;
@@ -9,6 +10,7 @@ import com.autolearn.icve.service.IcveCourseService;
 import com.xiaoleilu.hutool.json.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -112,13 +114,13 @@ public class CourseApi {
      * @param q
      * @return
      */
-    @GetMapping("/answer")
+    @GetMappingJson("/answer")
     public String getAnswer(String q) {
         log.info("获取答案");
         return icveCourseService.getAnswer(q);
     }
 
-    @GetMapping("/user/info")
+    @GetMappingJson("/user/info")
     public String userInfo() {
         log.info("获取用户信息");
         return icveCourseService.getUserInfo();

@@ -41,6 +41,11 @@ public final class UrlFields {
     public static final String ICVE_CHANGE_STU_STUDY_PROCESS_CELL_DATA = "https://zjy2.icve.com.cn/api/common/Directory/changeStuStudyProcessCellData";
     /** 获取用户信息 */
     public static final String ICVE_GET_USER_INFO = "https://zjy2.icve.com.cn/api/student/stuInfo/getStuInfo";
+    /**
+     * 更新课件
+     */
+    public static final String ICVE_UPDATE_CELL_DATA = "https://zjy2.icve.com.cn/api/common/Directory/updateCellData";
+
 
 
     /** 添加redis 学生记录  */

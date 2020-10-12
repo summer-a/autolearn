@@ -1,6 +1,7 @@
 package com.autolearn.icve.controller;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.autolearn.icve.config.annotation.GetMappingJson;
 import com.autolearn.icve.entity.icve.IcveUserAndId;
 import com.autolearn.icve.entity.icve.ResultVO;
 import com.autolearn.icve.entity.icve.dto.CourseTaskDTO;
@@ -199,13 +200,13 @@ public class WorkApi {
         return userQueue;
     }
 
-    @GetMapping(value = "/msg", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE})
+    @GetMappingJson("/msg")
     public String msg() {
         log.info("获取公告");
         return msg;
     }
 
-    @GetMapping(value = "/set/msg", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE})
+    @GetMappingJson("/set/msg")
     public ResultVO setMsg(String pwd, String m) {
         log.info("设置公告");
         if (Objects.equals(pwd, STACK_INFO_PWD)) {

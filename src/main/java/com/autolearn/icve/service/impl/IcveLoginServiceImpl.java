@@ -10,9 +10,11 @@ import com.xiaoleilu.hutool.util.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Base64Utils;
-import sun.misc.BASE64Encoder;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author 胡江斌
@@ -91,7 +93,6 @@ public class IcveLoginServiceImpl implements IcveLoginService {
             map.put("code", "500");
             map.put("msg", "获取验证码失败");
         }
-
         return map;
     }
 
