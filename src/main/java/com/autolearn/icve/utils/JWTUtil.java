@@ -25,7 +25,7 @@ public class JWTUtil {
     /**
      * 盐
      */
-    private static final String SALT = "hujiangbing88619973";
+    private static final String SALT = "x";
 
     /**
      * 超时时间(小时)
