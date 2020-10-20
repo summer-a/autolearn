@@ -10,12 +10,14 @@
 ### 信息查看 
 | 标题 | URL |
 | -------------: | :--------------------------- |
-| 设置公告 | /api/set/msg?pwd=123456&m=公告内容 (emmmm...我知道很草率) |
+| 设置公告 | /api/set/msg?pwd=123456&m=公告内容 |
 | 查看公告 | /api/msg |
 | 查看线程池信息 | /api/threadpool/info |
 | 查看系统信息 | /api/server/info?pwd=123456 |
 | 获取队列信息 | /api/queue/info |
 | 获取某用户任务运行状态 | /api/state/task?id=用户id |
+| 允许登录 | /login/open |
+| 禁止登录 | /login/close |
 
 
 - 其中配置项 (stackinfo.pwd: 123456) 用于设置访问密码,如上的pwd参数
